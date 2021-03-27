@@ -18,6 +18,24 @@ namespace WCNexus.App
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((hostingContext, config) =>
+                {
+                    config.Sources.Clear();
+
+                    IHostEnvironment env = hostingContext.HostingEnvironment;
+
+                    config.AddYamlFile("appsettings.yaml", optional: true, reloadOnChange: true)
+                            .AddYamlFile($"appsettings.{env.EnvironmentName}.yaml",
+                                        optional: true, reloadOnChange: true)
+                            .AddYamlFile("secrets.yaml", optional: true);
+
+                    config.AddEnvironmentVariables();
+
+                    if (args != null)
+                    {
+                        config.AddCommandLine(args);
+                    }
+                })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
