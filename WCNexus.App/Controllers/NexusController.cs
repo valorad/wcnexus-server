@@ -11,13 +11,13 @@ namespace WCNexus.App.Controllers
     public class NexusController: ControllerBase
     {
         [HttpGet("{dbname}")]
-        public async Task<IActionResult> GetSingle([FromBody] GetSingleRequest request)
+        public async Task<IActionResult> GetSingle([FromQuery] GetSingleQuery query)
         {
             return BadRequest("This endpoint has not been implemented");
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetList([FromBody] GetListRequest request)
+        public async Task<IActionResult> GetList([FromQuery] GetListQuery query)
         {
             return BadRequest("This endpoint has not been implemented");
         }
@@ -58,41 +58,42 @@ namespace WCNexus.App.Controllers
             return BadRequest("This endpoint has not been implemented");
         }
         
-        public class GetSingleRequest 
+        public class GetSingleQuery
         {
-            public string dbname { get; set; }
+            public IDBViewOption Options { get; set; }
         }
 
-        public class GetListRequest 
+        public class GetListQuery 
         {
-            public FilterDefinition<Nexus> condition { get; set; }
+            public FilterDefinition<Nexus> Condition { get; set; }
+            public IDBViewOption Options { get; set; }
         }
         public class AddSingleRequest 
         {
-            public InputNexus newItem { get; set; }
+            public InputNexus NewNexus { get; set; }
         }
         public class AddListRequest 
         {
-            public IEnumerable<InputNexus> newItems { get; set; }
+            public IEnumerable<InputNexus> NewNexuses { get; set; }
         }
         public class UpdateSingleRequest 
         {
-            public string dbname { get; set; }
-            public UpdateDefinition<Nexus> token { get; set; }
+            public string DBName { get; set; }
+            public UpdateDefinition<Nexus> Token { get; set; }
         }
         public class UpdateListRequest 
         {
-            public FilterDefinition<Nexus> condition { get; set; }
-            public UpdateDefinition<Nexus> token { get; set; }
+            public FilterDefinition<Nexus> Condition { get; set; }
+            public UpdateDefinition<Nexus> Token { get; set; }
         }
         public class DeleteSingleRequest 
         {
-            public string dbname { get; set; }
+            public string DBName { get; set; }
         }
 
         public class DeleteListRequest 
         {
-            public IEnumerable<string> dbnames { get; set; }
+            public FilterDefinition<Nexus> Condition { get; set; }
         }
 
     }
