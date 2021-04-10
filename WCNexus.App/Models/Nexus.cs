@@ -2,7 +2,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace WCNexus.App.Models {
-    public class Nexus
+    public class Nexus: INexus
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]

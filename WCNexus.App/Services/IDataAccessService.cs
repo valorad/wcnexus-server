@@ -12,7 +12,7 @@ namespace WCNexus.App.Services
         Task<T> Get(string indexField, IDBViewOption options = null);
         Task<IEnumerable<T>> Get(FilterDefinition<T> condition, IDBViewOption options = null);
         Task<CUDMessage> Add(T newItem);
-        Task<CUDMessage> Add(List<T> newItems);
+        Task<CUDMessage> Add(IEnumerable<T> newItems);
         Task<CUDMessage> Update(string indexField, UpdateDefinition<T> token);
         Task<CUDMessage> Update(FilterDefinition<T> condition, UpdateDefinition<T> token);
         Task<CUDMessage> Delete(string indexField);

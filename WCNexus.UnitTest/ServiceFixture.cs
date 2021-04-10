@@ -9,6 +9,8 @@ namespace WCNexus.UnitTest
 {
   public class ServiceFixture
   {
+    public ServiceProvider ServiceProvider { get; private set; }
+    
     public ServiceFixture()
     {
       var config = new ConfigurationBuilder()
@@ -33,11 +35,11 @@ namespace WCNexus.UnitTest
 
       // add services
       services.AddSingleton<INexusService, NexusService>();
+      services.AddSingleton<IProjectDBService, ProjectDBService>();
+      services.AddSingleton<IProjectService, ProjectService>();
 
       ServiceProvider = services.BuildServiceProvider();
     }
-
-    public ServiceProvider ServiceProvider { get; private set; }
 
   }
 }

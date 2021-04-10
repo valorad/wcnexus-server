@@ -6,6 +6,7 @@ using WCNexus.App.Database;
 using WCNexus.App.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Linq;
 
 namespace WCNexus.App.Services
 {
@@ -89,7 +90,7 @@ namespace WCNexus.App.Services
             }
         }
 
-        public async Task<CUDMessage> Add(List<T> newItems)
+        public async Task<CUDMessage> Add(IEnumerable<T> newItems)
         {
             try
             {
@@ -97,7 +98,7 @@ namespace WCNexus.App.Services
                 return new CUDMessage()
                 {
                     OK = true,
-                    NumAffected = newItems.Count,
+                    NumAffected = newItems.Count(),
                     Message = "",
                 };
             }
