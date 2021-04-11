@@ -6,9 +6,8 @@ using WCNexus.App.Models;
 using Xunit;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using System.Text.Json;
 using MongoDB.Driver;
+using WCNexus.App.Library;
 
 namespace WCNexus.UnitTest
 {
@@ -42,15 +41,13 @@ namespace WCNexus.UnitTest
         public async void SingleCRUDTest(InputProject newProject, IEnumerable<InputNexus> technologies)
         {
             var toAddNewTechnology = "tech-mssql";
-            var updateTokenLiteral = $@"{{
-                ""$push"": {{
-                    ""techs"": ""{toAddNewTechnology}""
-                }}
-            }}";
-            // remove all white spaces
-            updateTokenLiteral = Regex.Replace(updateTokenLiteral, @"\s+", "");
-            // validate JSON structure
-            UpdateDefinition<ProjectDB> projectDBUpdateToken = JsonDocument.Parse(updateTokenLiteral).RootElement.ToString();
+            UpdateDefinition<ProjectDB> projectDBUpdateToken = JsonUtil.CreateCompactLiteral(
+                $@"{{
+                    ""$push"": {{
+                        ""techs"": ""{toAddNewTechnology}""
+                        }}
+                    }}"
+            );
 
             // Add existing technologies
             await nexusService.Add(technologies);
@@ -92,32 +89,14 @@ namespace WCNexus.UnitTest
 
         [Theory(DisplayName = "Project plural test")]
         [ClassData(typeof(DataMultipleProjects))]
-        public async void PluralCRUDTest(IEnumerable<InputProject> newProjects, IEnumerable<Nexus> technologies)
+        public async void PluralCRUDTest(IEnumerable<InputProject> newProjects, IEnumerable<InputNexus> technologies)
         {
             var newURL = "https://404.org";
 
-            var updateConditionLiteral = $@"{{
-                ""url"": null
-            }}";
-            // remove all white spaces
-            updateConditionLiteral = Regex.Replace(updateConditionLiteral, @"\s+", "");
-            // validate JSON structure
-            FilterDefinition<ProjectDB> updateCondition = JsonDocument.Parse(updateConditionLiteral).RootElement.ToString();
+            FilterDefinition<ProjectDB> getCondition = JsonUtil.CreateCompactLiteral("{}");
 
-            var updateTokenLiteral = $@"{{
-                    ""$set"": {{
-                        ""url"": ""{newURL}""
-                    }}
-                }}
-            ";
-            // remove all white spaces
-            updateTokenLiteral = Regex.Replace(updateTokenLiteral, @"\s+", "");
-            // validate JSON structure
-            UpdateDefinition<ProjectDB> updateToken = JsonDocument.Parse(updateTokenLiteral).RootElement.ToString();
-
-            FilterDefinition<ProjectDB> getCondition = JsonDocument.Parse("{}").RootElement.ToString();
-            JsonElement afterUpdateGetJsonCondition = JsonDocument.Parse($@"{{""url"": ""{newURL}"" }}").RootElement;
-            FilterDefinition<ProjectDB> afterUpdateGetCondition = afterUpdateGetJsonCondition.ToString();
+            // Add existing technologies
+            await nexusService.Add(technologies);
 
             // Add many + Get many
             List<CUDMessage> addMessages = (await projectService.Add(newProjects)).ToList();
@@ -130,28 +109,89 @@ namespace WCNexus.UnitTest
             List<Project> projectsInDB = (await projectService.Get(getCondition)).ToList();
             Assert.Equal(2, projectsInDB.Count);
 
-            // Update many
-            CUDMessage updateMessage = await projectDBService.Update(updateCondition, updateToken);
-            Assert.Equal(2, updateMessage.NumAffected);
-            projectsInDB = (await projectService.Get(afterUpdateGetCondition)).ToList();
+            // ===== Update Many =====
+            // 1 - Update many from projectDB
+            // -> find the project with 2 technologies
+            FilterDefinition<ProjectDB> projectDBUpdateCondition = JsonUtil.CreateCompactLiteral($@"{{
+                ""$expr"": {{""$eq"": [ {{""$size"": ""$techs""}}, 2 ]}}
+            }}");
+
+            var toAddNewTechnologyName = "tech-mssql";
+            UpdateDefinition<ProjectDB> projectDBUpdateToken = JsonUtil.CreateCompactLiteral($@"{{
+                ""$push"": {{
+                    ""techs"": ""{toAddNewTechnologyName}""
+                }}
+            }}");
+
+            CUDMessage updateMessage = await projectDBService.Update(projectDBUpdateCondition, projectDBUpdateToken);
+            Assert.Equal(1, updateMessage.NumAffected);
+
+            FilterDefinition<ProjectDB> projectDBAfterUpdateGetCondition = JsonUtil.CreateCompactLiteral($@"{{""$expr"": {{""$eq"": [ {{""$size"": ""$techs""}}, 3 ]}}}}");
+
+            projectsInDB = (await projectService.Get(projectDBAfterUpdateGetCondition)).ToList();
+            Assert.Single(projectsInDB);
+            Assert.NotNull(projectsInDB[0].Techs.First(tech => tech.DBName == toAddNewTechnologyName));
+
+            // 2 - Update many from Nexus
+
+            FilterDefinition<Nexus> nexusUpdateCondition = JsonUtil.CreateCompactLiteral($@"{{
+                ""type"": ""type-project"",
+                ""url"": null
+            }}");
+
+            UpdateDefinition<Nexus> nexusUpdateToken = JsonUtil.CreateCompactLiteral($@"{{
+                    ""$set"": {{
+                        ""url"": ""{newURL}""
+                    }}
+                }}
+            ");
+
+            CUDMessage nexusUpdateMessage = await nexusService.Update(nexusUpdateCondition, nexusUpdateToken);
+            Assert.Equal(2, nexusUpdateMessage.NumAffected);
+
+            FilterDefinition<Nexus> nexusAfterUpdateGetCondition = JsonUtil.CreateCompactLiteral($@"{{""url"": ""{newURL}""}}");
+
+            projectsInDB = (await projectService.Get(nexusAfterUpdateGetCondition)).ToList();
             Assert.Equal(2, projectsInDB.Count);
-            
+
             foreach (var project in projectsInDB)
             {
                 Assert.Equal(newURL, project.URL);
             }
 
-            // Delete many
-            List<CUDMessage> deleteMessages = (await projectService.Delete(afterUpdateGetJsonCondition)).ToList();
+            // ===== Delete Many =====
+            // 1 - Delete many from projectDB
+            FilterDefinition<ProjectDB> projectDBDeleteCondition = JsonUtil.CreateCompactLiteral($@"{{
+                ""$expr"": {{""$eq"": [ {{""$size"": ""$techs""}}, 1 ]}}
+            }}");
 
-            foreach (var message in deleteMessages)
+            List<CUDMessage> projectDBDeleteMessages = (await projectService.FindManyAndDelete(projectDBDeleteCondition)).ToList();
+
+            foreach (var message in projectDBDeleteMessages)
             {
                 Assert.True(message.OK);
-                Assert.Equal(2, message.NumAffected);
+                Assert.Equal(1, message.NumAffected);
             }
 
-            projectsInDB = (await projectService.Get(getCondition)).ToList();
-            Assert.Equal(0, projectsInDB.Count);
+            List<Project> projectsToDeleteInDB = (await projectService.Get(projectDBDeleteCondition)).ToList();
+            Assert.Empty(projectsToDeleteInDB);
+
+            // 2 - Delete many from Nexus
+            FilterDefinition<Nexus> nexusDeleteCondition = JsonUtil.CreateCompactLiteral($@"{{
+                ""logo"": ""fps-helper.png""
+            }}");
+
+            List<CUDMessage> nexusDBDeleteMessages = (await projectService.FindManyAndDelete(nexusDeleteCondition)).ToList();
+
+            foreach (var message in nexusDBDeleteMessages)
+            {
+                Assert.True(message.OK);
+                Assert.Equal(1, message.NumAffected);
+            }
+
+            projectsToDeleteInDB = (await projectService.Get(nexusDeleteCondition)).ToList();
+            Assert.Empty(projectsToDeleteInDB);
+
         }
 
     }
@@ -222,7 +262,7 @@ namespace WCNexus.UnitTest
         }
     }
 
-    public class DataMultipleProjects : TheoryData<IEnumerable<InputProject>, IEnumerable<Nexus>>
+    public class DataMultipleProjects : TheoryData<IEnumerable<InputProject>, IEnumerable<InputNexus>>
     {
 
         public DataMultipleProjects()
@@ -248,7 +288,7 @@ namespace WCNexus.UnitTest
                     Name = "FPS Helper",
                     Description = "FPS Helper",
                     URL = null,
-                    Logo = null,
+                    Logo = "fps-helper.png",
                     Type = "type-project",
                     Techs = new List<string>() {
                         "tech-angular",
@@ -257,9 +297,9 @@ namespace WCNexus.UnitTest
                 },
             };
 
-            var technologies = new List<Nexus>()
+            var technologies = new List<InputNexus>()
             {
-                new Nexus()
+                new InputNexus()
                 {
                     DBName = "tech-java",
                     Name = "Java Language",
@@ -268,7 +308,7 @@ namespace WCNexus.UnitTest
                     Logo = "java-island.webp",
                     Type = "type-technology",
                 },
-                new Nexus()
+                new InputNexus()
                 {
                     DBName = "tech-angular",
                     Name = "Angular",
@@ -277,13 +317,22 @@ namespace WCNexus.UnitTest
                     Logo = "angular.jpg",
                     Type = "type-technology",
                 },
-                new Nexus()
+                new InputNexus()
                 {
                     DBName = "tech-javascript",
                     Name = "JavaScript Language",
                     Description = "Language spoken by all browsers + node eco-system",
                     URL = null,
                     Logo = "java-scripter.gif",
+                    Type = "type-technology",
+                },
+                new InputNexus()
+                {
+                    DBName = "tech-mssql",
+                    Name = "My-cro-soft-super-quater-latency",
+                    Description = "So, in short, MYSQL",
+                    URL = "https://idunnowhat.tm/",
+                    Logo = "idunnowhat.jpg",
                     Type = "type-technology",
                 },
             };

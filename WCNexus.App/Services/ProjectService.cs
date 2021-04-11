@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using MongoDB.Driver;
-using WCNexus.App.Database;
+using WCNexus.App.Library;
 using WCNexus.App.Models;
 
 namespace WCNexus.App.Services
@@ -52,6 +52,24 @@ namespace WCNexus.App.Services
         public async Task<IEnumerable<Project>> Get(FilterDefinition<ProjectDB> projectCondition, IDBViewOption options = null)
         {
 
+            // make sure dbnames are projected, because they are crucial to join 2 collections
+            if (options is {})
+            {
+                if (options.Includes is {} && options.Includes.Contains("dbname") )
+                {
+                    options.Includes.Append("dbname");
+                }
+
+                if (options.Excludes is {} && options.Excludes.Contains("dbname") )
+                {
+                    options.Excludes = (
+                        from field in options.Excludes
+                        where field != "dbname"
+                        select field
+                    );
+                }
+            }
+
             IEnumerable<ProjectDB> projectDBInstances = await projectDBService.Get(projectCondition, options);
 
             if (projectDBInstances.Count() <= 0)
@@ -69,16 +87,11 @@ namespace WCNexus.App.Services
                 select $@"""{name}"""
             ).ToList();
 
-            var projectNexusFilterLiteral = $@"{{
+            FilterDefinition<Nexus> projectNexusFilter = JsonUtil.CreateCompactLiteral($@"{{
                 ""dbname"": {{
                     ""$in"": [ { string.Join(',', quotedNames) } ]
                 }}
-            }}";
-
-            // remove all white spaces
-            projectNexusFilterLiteral = Regex.Replace(projectNexusFilterLiteral, @"\s+", "");
-            
-            FilterDefinition<Nexus> projectNexusFilter = JsonDocument.Parse(projectNexusFilterLiteral).RootElement.ToString();
+            }}");
 
             ProjectionOption nexusProjections = null;
 
@@ -111,13 +124,111 @@ namespace WCNexus.App.Services
 
             IEnumerable<Project> projects = await Task.WhenAll(projectNexusItems.Select(async (project) => new Project()
             {
-                    DBName = project.DBName,
-                    Name = project.Name,
-                    Description = project.Description,
-                    URL = project.URL,
-                    Logo = project.Logo,
-                    Type = project.Type,
-                    Techs = await GetTechnologies(project.Techs),
+                DBName = project.DBName,
+                Name = project.Name,
+                Description = project.Description,
+                URL = project.URL,
+                Logo = project.Logo,
+                Type = project.Type,
+                Techs = await GetTechnologies(project.Techs),
+            }));
+
+            return projects;
+            
+        }
+        
+        public async Task<IEnumerable<Project>> Get(FilterDefinition<Nexus> nexusCondition, IDBViewOption options = null)
+        {
+
+            BsonDocument nexusBsonCondition = nexusCondition.RenderToBsonDocument();
+
+            FilterDefinition<Nexus> projectTypeFilter = JsonUtil.CreateCompactLiteral($@"{{ ""type"": ""type-project"" }}");
+
+            BsonDocument projectNexusBsonCondition = projectTypeFilter.RenderToBsonDocument();
+
+            FilterDefinition<Nexus> projectNexusCondition = nexusBsonCondition.Merge(projectNexusBsonCondition, true);
+
+            // make sure dbnames are projected, because they are crucial to join 2 collections
+            if (options is {})
+            {
+                if (options.Includes is {} && options.Includes.Contains("dbname") )
+                {
+                    options.Includes.Append("dbname");
+                }
+
+                if (options.Excludes is {} && options.Excludes.Contains("dbname") )
+                {
+                    options.Excludes = (
+                        from field in options.Excludes
+                        where field != "dbname"
+                        select field
+                    );
+                }
+            }
+
+            IEnumerable<Nexus> nexuses = await nexusService.Get(projectNexusCondition, options);
+
+            // extract dbnames
+            List<string> dbnames = (
+                from nexus in nexuses
+                select nexus.DBName
+            ).ToList();
+
+            List<string> quotedNames = (
+                from name in dbnames
+                select $@"""{name}"""
+            ).ToList();
+            
+            // search project db collection
+            var projectDBFilterLiteral = $@"{{
+                ""dbname"": {{
+                    ""$in"": [ { string.Join(',', quotedNames) } ]
+                }}
+            }}";
+            // remove all white spaces
+            projectDBFilterLiteral = Regex.Replace(projectDBFilterLiteral, @"\s+", "");
+            
+            FilterDefinition<ProjectDB> projectDBFilter = JsonUtil.CreateCompactLiteral(projectDBFilterLiteral);
+
+            ProjectionOption nexusProjections = null;
+
+            if (options is {})
+            {
+                nexusProjections = new ProjectionOption()
+                {
+                    Includes = options.Includes,
+                    Excludes = options.Excludes,
+                };
+            }
+
+            IEnumerable<ProjectDB> projectDBInstances = await projectDBService.Get(projectDBFilter, nexusProjections as IDBViewOption);
+
+            // join
+            var projectNexusItems = projectDBInstances.Join(
+                nexuses,
+                projectDB => projectDB.DBName,
+                nexus => nexus.DBName,
+                (projectDB, nexus) => new
+                {
+                    DBName = nexus.DBName,
+                    Name = nexus.Name,
+                    Description = nexus.Description,
+                    URL = nexus.URL,
+                    Logo = nexus.Logo,
+                    Type = nexus.Type,
+                    Techs = projectDB.Techs,
+                }
+            );
+
+            IEnumerable<Project> projects = await Task.WhenAll(projectNexusItems.Select(async (project) => new Project()
+            {
+                DBName = project.DBName,
+                Name = project.Name,
+                Description = project.Description,
+                URL = project.URL,
+                Logo = project.Logo,
+                Type = project.Type,
+                Techs = await GetTechnologies(project.Techs),
             }));
 
             return projects;
@@ -173,6 +284,7 @@ namespace WCNexus.App.Services
                 from project in newProjects
                 select new ProjectDB()
                 {
+                    DBName = project.DBName,
                     Techs = project.Techs,
                     Images = project.Images,
                 }
@@ -256,16 +368,13 @@ namespace WCNexus.App.Services
                 select $@"""{name}"""
             ).ToList();
 
-            var deleteProjectFilterLiteral = $@"{{
+            JsonElement deleteToken = JsonUtil.CreateCompactDocument($@"{{
                 ""dbname"": {{
                     ""$in"": [ { string.Join(',', quotedNames) } ]
                 }}
-            }}";
+            }}").RootElement;
 
-            // remove all white spaces
-            deleteProjectFilterLiteral = Regex.Replace(deleteProjectFilterLiteral, @"\s+", "");
-
-            return await Delete(JsonDocument.Parse(deleteProjectFilterLiteral).RootElement);
+            return await Delete(deleteToken);
 
         }
 
@@ -295,13 +404,13 @@ namespace WCNexus.App.Services
                 select $@"""{name}"""
             ).ToList();
 
-            var deleteProjectFilterLiteral = $@"{{
+            JsonElement deleteToken = JsonUtil.CreateCompactDocument($@"{{
                 ""dbname"": {{
                     ""$in"": [ { string.Join(',', quotedNames) } ]
                 }}
-            }}";
+            }}").RootElement;
             
-            return await Delete(JsonDocument.Parse(deleteProjectFilterLiteral).RootElement);
+            return await Delete(deleteToken);
         }
 
         // get technology nexus
@@ -313,17 +422,12 @@ namespace WCNexus.App.Services
                 select $@"""{name}"""
             ).ToList();
 
-            var technologyFilterLiteral = $@"{{
+            FilterDefinition<Nexus> technologyFilter = JsonUtil.CreateCompactLiteral($@"{{
                 ""type"": ""type-technology"",
                 ""dbname"": {{
                     ""$in"": [ { string.Join(',', quotedTechnologyNames) } ]
                 }}
-            }}";
-
-            // remove all white spaces
-            technologyFilterLiteral = Regex.Replace(technologyFilterLiteral, @"\s+", "");
-
-            FilterDefinition<Nexus> technologyFilter = JsonDocument.Parse(technologyFilterLiteral).RootElement.ToString();
+            }}");
 
             return await nexusService.Get(technologyFilter);
 

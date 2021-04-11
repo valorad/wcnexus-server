@@ -10,11 +10,14 @@ namespace WCNexus.App.Services
     {
         Task<Project> Get(string dbname, IDBViewOption options = null);
         Task<IEnumerable<Project>> Get(FilterDefinition<ProjectDB> projectCondition, IDBViewOption options = null);
+        Task<IEnumerable<Project>> Get(FilterDefinition<Nexus> projectCondition, IDBViewOption options = null);
         Task<IEnumerable<CUDMessage>> Add(InputProject newProject);
         Task<IEnumerable<CUDMessage>> Add(IEnumerable<InputProject> newProjects);
         Task<IEnumerable<CUDMessage>> Update(string dbname, UpdateDefinition<Project> token);
         Task<IEnumerable<CUDMessage>> Update(FilterDefinition<Project> condition, UpdateDefinition<Project> token);
         Task<IEnumerable<CUDMessage>> Delete(string dbname);
         Task<IEnumerable<CUDMessage>> Delete(JsonElement deleteProjectDBNameFilter);
+        Task<IEnumerable<CUDMessage>> FindManyAndDelete(FilterDefinition<ProjectDB> projectDBCondition);
+        Task<IEnumerable<CUDMessage>> FindManyAndDelete(FilterDefinition<Nexus> nexusCondition);
     }
 }

@@ -111,7 +111,7 @@ namespace WCNexus.UnitTest
             CUDMessage deleteMessage = await nexusService.Delete(afterUpdateGetCondition);
             Assert.Equal(2, deleteMessage.NumAffected);
             nexusesInDB = (await nexusService.Get(getCondition)).ToList();
-            Assert.Equal(1, nexusesInDB.Count);
+            Assert.Single(nexusesInDB);
         }
 
     }
