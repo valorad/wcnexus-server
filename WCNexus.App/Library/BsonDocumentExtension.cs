@@ -12,5 +12,12 @@ namespace WCNexus.App.Library
             var documentSerializer = serializerRegistry.GetSerializer<T>();
             return filter.Render(documentSerializer, serializerRegistry);
         }
+
+        public static BsonDocument RenderToBsonDocument<T>(this UpdateDefinition<T> token)
+        {
+            var serializerRegistry = BsonSerializer.SerializerRegistry;
+            var documentSerializer = serializerRegistry.GetSerializer<T>();
+            return token.Render(documentSerializer, serializerRegistry).ToBsonDocument();
+        }
     }
 }

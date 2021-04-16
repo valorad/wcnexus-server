@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Driver;
 using WCNexus.App.Library;
+using MongoDB.Bson;
 
 namespace WCNexus.UnitTest
 {
@@ -18,7 +19,7 @@ namespace WCNexus.UnitTest
         private readonly IDBContext dbContext;
         private readonly IProjectService projectService;
         private readonly INexusService nexusService;
-        private readonly IProjectDBService projectDBService;
+        private readonly IStoredProjectService storedProjectService;
 
         public ProjectTest(ServiceFixture fixture)
         {
@@ -27,7 +28,7 @@ namespace WCNexus.UnitTest
             dbContext = serviceProvider.GetService<IDBContext>();
             projectService = serviceProvider.GetService<IProjectService>();
             nexusService = serviceProvider.GetService<INexusService>();
-            projectDBService = serviceProvider.GetService<IProjectDBService>();
+            storedProjectService = serviceProvider.GetService<IStoredProjectService>();
         }
 
         public void Dispose()
@@ -40,14 +41,6 @@ namespace WCNexus.UnitTest
         [ClassData(typeof(DataSingleProject))]
         public async void SingleCRUDTest(InputProject newProject, IEnumerable<InputNexus> technologies)
         {
-            var toAddNewTechnology = "tech-mssql";
-            UpdateDefinition<ProjectDB> projectDBUpdateToken = JsonUtil.CreateCompactLiteral(
-                $@"{{
-                    ""$push"": {{
-                        ""techs"": ""{toAddNewTechnology}""
-                        }}
-                    }}"
-            );
 
             // Add existing technologies
             await nexusService.Add(technologies);
@@ -58,19 +51,40 @@ namespace WCNexus.UnitTest
             foreach (var message in addMessages)
             {
                 Assert.True(message.OK);
+                Assert.Equal(1, message.NumAffected);
             }
 
             // Read single
-            Project projectInDB = await projectService.Get(newProject.DBName);
+            JointProject projectInDB = await projectService.Get(newProject.DBName);
             Assert.NotNull(projectInDB);
-            Assert.NotNull(projectInDB.DBName);
+            Assert.Equal(newProject.DBName, projectInDB.DBName);
             Assert.NotNull(projectInDB.Techs);
 
-            // Update single - add a new technology
-            CUDMessage updateMessage = await projectDBService.Update(newProject.DBName, projectDBUpdateToken);
+            // Update single - change name and add a new technology
+            var toAddNewTechnology = "tech-mssql";
+            var newName = "Project Endian Initializer";
+            UpdateDefinition<JointProject> projectUpdateToken = JsonUtil.CreateCompactLiteral(
+                $@"{{
+                    ""$set"": {{
+                        ""name"": ""{newName}""
+                    }},
+                    ""$push"": {{
+                        ""techs"": ""{toAddNewTechnology}""
+                    }}
+                 }}"
+            );
+            List<CUDMessage> updateMessages = (await projectService.Update(newProject.DBName, projectUpdateToken)).ToList();
+            foreach (var message in updateMessages)
+            {
+                Assert.True(message.OK);
+                Assert.Equal(1, message.NumAffected);
+            }
+
             projectInDB = await projectService.Get(newProject.DBName);
 
-            Nexus techInProject = projectInDB.Techs.FirstOrDefault(tech => tech.DBName == toAddNewTechnology);
+            Assert.Equal(newName, projectInDB.Name);
+
+            string techInProject = projectInDB.Techs.FirstOrDefault(tech => tech == toAddNewTechnology);
 
             Assert.NotNull(techInProject);
 
@@ -91,9 +105,6 @@ namespace WCNexus.UnitTest
         [ClassData(typeof(DataMultipleProjects))]
         public async void PluralCRUDTest(IEnumerable<InputProject> newProjects, IEnumerable<InputNexus> technologies)
         {
-            var newURL = "https://404.org";
-
-            FilterDefinition<ProjectDB> getCondition = JsonUtil.CreateCompactLiteral("{}");
 
             // Add existing technologies
             await nexusService.Add(technologies);
@@ -106,90 +117,76 @@ namespace WCNexus.UnitTest
                 Assert.True(message.OK);
             }
 
-            List<Project> projectsInDB = (await projectService.Get(getCondition)).ToList();
+            FilterDefinition<JointProject> getConditionAll = "{}";
+
+            List<JointProject> projectsInDB = (await projectService.Get(getConditionAll)).ToList();
             Assert.Equal(2, projectsInDB.Count);
 
+            FilterDefinition<JointProject> getConditionHasLogoWithTechs = JsonUtil.CreateCompactLiteral($@"{{
+                 ""logo"":{{
+                     ""$ne"": null
+                 }},
+                 ""$expr"": {{
+                     ""$eq"": [
+                         {{""$size"": ""$techs""}}, 2 
+                     ]
+                 }}
+             }}");
+            projectsInDB = (await projectService.Get(getConditionHasLogoWithTechs)).ToList();
+            Assert.Single(projectsInDB);
+
             // ===== Update Many =====
-            // 1 - Update many from projectDB
-            // -> find the project with 2 technologies
-            FilterDefinition<ProjectDB> projectDBUpdateCondition = JsonUtil.CreateCompactLiteral($@"{{
+            // -> Find the project with no URL and with 2 technologies
+            FilterDefinition<JointProject> updateCondition = JsonUtil.CreateCompactLiteral($@"{{
+                ""url"": null,
                 ""$expr"": {{""$eq"": [ {{""$size"": ""$techs""}}, 2 ]}}
             }}");
 
+            var newURL = "https://404.org";
             var toAddNewTechnologyName = "tech-mssql";
-            UpdateDefinition<ProjectDB> projectDBUpdateToken = JsonUtil.CreateCompactLiteral($@"{{
-                ""$push"": {{
-                    ""techs"": ""{toAddNewTechnologyName}""
-                }}
-            }}");
 
-            CUDMessage updateMessage = await projectDBService.Update(projectDBUpdateCondition, projectDBUpdateToken);
-            Assert.Equal(1, updateMessage.NumAffected);
-
-            FilterDefinition<ProjectDB> projectDBAfterUpdateGetCondition = JsonUtil.CreateCompactLiteral($@"{{""$expr"": {{""$eq"": [ {{""$size"": ""$techs""}}, 3 ]}}}}");
-
-            projectsInDB = (await projectService.Get(projectDBAfterUpdateGetCondition)).ToList();
-            Assert.Single(projectsInDB);
-            Assert.NotNull(projectsInDB[0].Techs.First(tech => tech.DBName == toAddNewTechnologyName));
-
-            // 2 - Update many from Nexus
-
-            FilterDefinition<Nexus> nexusUpdateCondition = JsonUtil.CreateCompactLiteral($@"{{
-                ""type"": ""type-project"",
-                ""url"": null
-            }}");
-
-            UpdateDefinition<Nexus> nexusUpdateToken = JsonUtil.CreateCompactLiteral($@"{{
+            UpdateDefinition<JointProject> updateToken = JsonUtil.CreateCompactLiteral($@"{{
                     ""$set"": {{
                         ""url"": ""{newURL}""
+                    }},
+                    ""$push"": {{
+                        ""techs"": ""{ toAddNewTechnologyName }""
                     }}
                 }}
             ");
 
-            CUDMessage nexusUpdateMessage = await nexusService.Update(nexusUpdateCondition, nexusUpdateToken);
-            Assert.Equal(2, nexusUpdateMessage.NumAffected);
+            List<CUDMessage> projectUpdateMessages = (await projectService.Update(updateCondition, updateToken)).ToList();
 
-            FilterDefinition<Nexus> nexusAfterUpdateGetCondition = JsonUtil.CreateCompactLiteral($@"{{""url"": ""{newURL}""}}");
-
-            projectsInDB = (await projectService.Get(nexusAfterUpdateGetCondition)).ToList();
-            Assert.Equal(2, projectsInDB.Count);
-
-            foreach (var project in projectsInDB)
+            foreach (var message in projectUpdateMessages)
             {
-                Assert.Equal(newURL, project.URL);
+                Assert.True(message.OK);
+                Assert.Equal(1, message.NumAffected);
             }
+
+            FilterDefinition<JointProject> afterUpdateGetCondition = JsonUtil.CreateCompactLiteral($@"{{
+                ""url"": ""{ newURL }"",
+                ""$expr"": {{""$eq"": [ {{""$size"": ""$techs""}}, 3 ]}}
+            }}");
+
+            projectsInDB = (await projectService.Get(afterUpdateGetCondition)).ToList();
+            Assert.Single(projectsInDB);
+            Assert.Equal(newURL, projectsInDB[0].URL);
+            Assert.NotNull(projectsInDB[0].Techs.First(tech => tech == toAddNewTechnologyName));
 
             // ===== Delete Many =====
-            // 1 - Delete many from projectDB
-            FilterDefinition<ProjectDB> projectDBDeleteCondition = JsonUtil.CreateCompactLiteral($@"{{
-                ""$expr"": {{""$eq"": [ {{""$size"": ""$techs""}}, 1 ]}}
-            }}");
+            FilterDefinition<JointProject> projectDeleteCondition = JsonUtil.CreateCompactLiteral($@"{{
+                 ""$expr"": {{""$eq"": [ {{""$size"": ""$techs""}}, 1 ]}}
+             }}");
 
-            List<CUDMessage> projectDBDeleteMessages = (await projectService.FindManyAndDelete(projectDBDeleteCondition)).ToList();
+            List<CUDMessage> projectDeleteMessages = (await projectService.Delete(projectDeleteCondition)).ToList();
 
-            foreach (var message in projectDBDeleteMessages)
+            foreach (var message in projectDeleteMessages)
             {
                 Assert.True(message.OK);
                 Assert.Equal(1, message.NumAffected);
             }
 
-            List<Project> projectsToDeleteInDB = (await projectService.Get(projectDBDeleteCondition)).ToList();
-            Assert.Empty(projectsToDeleteInDB);
-
-            // 2 - Delete many from Nexus
-            FilterDefinition<Nexus> nexusDeleteCondition = JsonUtil.CreateCompactLiteral($@"{{
-                ""logo"": ""fps-helper.png""
-            }}");
-
-            List<CUDMessage> nexusDBDeleteMessages = (await projectService.FindManyAndDelete(nexusDeleteCondition)).ToList();
-
-            foreach (var message in nexusDBDeleteMessages)
-            {
-                Assert.True(message.OK);
-                Assert.Equal(1, message.NumAffected);
-            }
-
-            projectsToDeleteInDB = (await projectService.Get(nexusDeleteCondition)).ToList();
+            List<JointProject> projectsToDeleteInDB = (await projectService.Get(projectDeleteCondition)).ToList();
             Assert.Empty(projectsToDeleteInDB);
 
         }
@@ -246,15 +243,6 @@ namespace WCNexus.UnitTest
                     Logo = "idunnowhat.jpg",
                     Type = "type-technology",
                 },
-                // new InputNexus()
-                // {
-                //     DBName = "tech-idunnowhat",
-                //     Name = "I Don't know what",
-                //     Description = "A dummy tech trying to scramble the test",
-                //     URL = "https://idunnowhat.tm/",
-                //     Logo = "idunnowhat.jpg",
-                //     Type = "type-technology",
-                // },
             };
 
             Add(newProject, technologies);

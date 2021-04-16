@@ -8,6 +8,7 @@ namespace WCNexus.App.Services
 {
     public interface IDataAccessService<T>
     {
+        IMongoCollection<T> collection { get; }
         string indexFieldName { get; set; }
         Task<T> Get(string indexField, IDBViewOption options = null);
         Task<IEnumerable<T>> Get(FilterDefinition<T> condition, IDBViewOption options = null);
@@ -17,5 +18,8 @@ namespace WCNexus.App.Services
         Task<CUDMessage> Update(FilterDefinition<T> condition, UpdateDefinition<T> token);
         Task<CUDMessage> Delete(string indexField);
         Task<CUDMessage> Delete(FilterDefinition<T> condition);
+        Task<TJoint> LeftJoinAndGet<TJoint>(string indexFieldValue, DBLeftJoinOption joinOptions, IDBViewOption viewOption = null);
+        Task<IEnumerable<TJoint>> LeftJoinAndGet<TJoint>(FilterDefinition<TJoint> condition, DBLeftJoinOption joinOptions, IDBViewOption viewOption = null);
+
     }
 }

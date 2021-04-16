@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -13,228 +11,49 @@ namespace WCNexus.App.Services
 {
     public class ProjectService: IProjectService
     {
-        private readonly IProjectDBService projectDBService;
+        private readonly IStoredProjectService storedProjectService;
         private readonly INexusService nexusService;
+        private List<string> storedProjectInputFields = new List<string>() {"techs", "images"};
+        private List<string> nexusInputFields = new List<string>() {"dbname", "name", "description", "url", "logo"}; // does not allow updating "type" field
 
         public ProjectService(
-            IProjectDBService projectDBService,
+            IStoredProjectService storedProjectService,
             INexusService nexusService
         )
         {
-            this.projectDBService = projectDBService;
+            this.storedProjectService = storedProjectService;
             this.nexusService = nexusService;
         }
 
-        public async Task<Project> Get(string dbname, IDBViewOption options = null)
+        public async Task<JointProject> Get(string dbname, IDBViewOption options = null)
         {
-            Nexus nexus = await nexusService.Get(dbname, options);
-            ProjectDB projectDB = await projectDBService.Get(dbname, options);
-
-            if (nexus is {} && projectDB is {})
-            {
-                return new Project()
+            return await storedProjectService.LeftJoinAndGet<JointProject>(
+                dbname,
+                new DBLeftJoinOption()
                 {
-                    DBName = nexus.DBName,
-                    Name = nexus.Name,
-                    Description = nexus.Description,
-                    URL = nexus.URL,
-                    Logo = nexus.Logo,
-                    Type = nexus.Type,
-                    Techs = await GetTechnologies(projectDB.Techs),
-                    Images = null,
-                };
-            }
-
-            return null;
+                    collectionName = "nexuses",
+                    localField = "dbname",
+                    foreignField = "dbname",
+                },
+                options
+            );
 
         }
 
-        public async Task<IEnumerable<Project>> Get(FilterDefinition<ProjectDB> projectCondition, IDBViewOption options = null)
+        public async Task<IEnumerable<JointProject>> Get(FilterDefinition<JointProject> projectCondition, IDBViewOption options = null)
         {
-
-            // make sure dbnames are projected, because they are crucial to join 2 collections
-            if (options is {})
-            {
-                if (options.Includes is {} && options.Includes.Contains("dbname") )
+            return await storedProjectService.LeftJoinAndGet(
+                projectCondition,
+                new DBLeftJoinOption()
                 {
-                    options.Includes.Append("dbname");
-                }
-
-                if (options.Excludes is {} && options.Excludes.Contains("dbname") )
-                {
-                    options.Excludes = (
-                        from field in options.Excludes
-                        where field != "dbname"
-                        select field
-                    );
-                }
-            }
-
-            IEnumerable<ProjectDB> projectDBInstances = await projectDBService.Get(projectCondition, options);
-
-            if (projectDBInstances.Count() <= 0)
-            {
-                return Enumerable.Empty<Project>();
-            }
-
-            IEnumerable<string> projectDBNames = (
-                from projectDB in projectDBInstances
-                select projectDB.DBName
+                    collectionName = "nexuses",
+                    localField = "dbname",
+                    foreignField = "dbname",
+                },
+                options
             );
-
-            List<string> quotedNames = (
-                from name in projectDBNames
-                select $@"""{name}"""
-            ).ToList();
-
-            FilterDefinition<Nexus> projectNexusFilter = JsonUtil.CreateCompactLiteral($@"{{
-                ""dbname"": {{
-                    ""$in"": [ { string.Join(',', quotedNames) } ]
-                }}
-            }}");
-
-            ProjectionOption nexusProjections = null;
-
-            if (options is {})
-            {
-                nexusProjections = new ProjectionOption()
-                {
-                    Includes = options.Includes,
-                    Excludes = options.Excludes,
-                };
-            }
-
-            IEnumerable<Nexus> nexuses = await nexusService.Get(projectNexusFilter, nexusProjections as IDBViewOption);
-
-            var projectNexusItems = projectDBInstances.Join(
-                nexuses,
-                projectDB => projectDB.DBName,
-                nexus => nexus.DBName,
-                (projectDB, nexus) => new
-                {
-                    DBName = nexus.DBName,
-                    Name = nexus.Name,
-                    Description = nexus.Description,
-                    URL = nexus.URL,
-                    Logo = nexus.Logo,
-                    Type = nexus.Type,
-                    Techs = projectDB.Techs,
-                }
-            );
-
-            IEnumerable<Project> projects = await Task.WhenAll(projectNexusItems.Select(async (project) => new Project()
-            {
-                DBName = project.DBName,
-                Name = project.Name,
-                Description = project.Description,
-                URL = project.URL,
-                Logo = project.Logo,
-                Type = project.Type,
-                Techs = await GetTechnologies(project.Techs),
-            }));
-
-            return projects;
             
         }
-        
-        public async Task<IEnumerable<Project>> Get(FilterDefinition<Nexus> nexusCondition, IDBViewOption options = null)
-        {
-
-            BsonDocument nexusBsonCondition = nexusCondition.RenderToBsonDocument();
-
-            FilterDefinition<Nexus> projectTypeFilter = JsonUtil.CreateCompactLiteral($@"{{ ""type"": ""type-project"" }}");
-
-            BsonDocument projectNexusBsonCondition = projectTypeFilter.RenderToBsonDocument();
-
-            FilterDefinition<Nexus> projectNexusCondition = nexusBsonCondition.Merge(projectNexusBsonCondition, true);
-
-            // make sure dbnames are projected, because they are crucial to join 2 collections
-            if (options is {})
-            {
-                if (options.Includes is {} && options.Includes.Contains("dbname") )
-                {
-                    options.Includes.Append("dbname");
-                }
-
-                if (options.Excludes is {} && options.Excludes.Contains("dbname") )
-                {
-                    options.Excludes = (
-                        from field in options.Excludes
-                        where field != "dbname"
-                        select field
-                    );
-                }
-            }
-
-            IEnumerable<Nexus> nexuses = await nexusService.Get(projectNexusCondition, options);
-
-            // extract dbnames
-            List<string> dbnames = (
-                from nexus in nexuses
-                select nexus.DBName
-            ).ToList();
-
-            List<string> quotedNames = (
-                from name in dbnames
-                select $@"""{name}"""
-            ).ToList();
-            
-            // search project db collection
-            var projectDBFilterLiteral = $@"{{
-                ""dbname"": {{
-                    ""$in"": [ { string.Join(',', quotedNames) } ]
-                }}
-            }}";
-            // remove all white spaces
-            projectDBFilterLiteral = Regex.Replace(projectDBFilterLiteral, @"\s+", "");
-            
-            FilterDefinition<ProjectDB> projectDBFilter = JsonUtil.CreateCompactLiteral(projectDBFilterLiteral);
-
-            ProjectionOption nexusProjections = null;
-
-            if (options is {})
-            {
-                nexusProjections = new ProjectionOption()
-                {
-                    Includes = options.Includes,
-                    Excludes = options.Excludes,
-                };
-            }
-
-            IEnumerable<ProjectDB> projectDBInstances = await projectDBService.Get(projectDBFilter, nexusProjections as IDBViewOption);
-
-            // join
-            var projectNexusItems = projectDBInstances.Join(
-                nexuses,
-                projectDB => projectDB.DBName,
-                nexus => nexus.DBName,
-                (projectDB, nexus) => new
-                {
-                    DBName = nexus.DBName,
-                    Name = nexus.Name,
-                    Description = nexus.Description,
-                    URL = nexus.URL,
-                    Logo = nexus.Logo,
-                    Type = nexus.Type,
-                    Techs = projectDB.Techs,
-                }
-            );
-
-            IEnumerable<Project> projects = await Task.WhenAll(projectNexusItems.Select(async (project) => new Project()
-            {
-                DBName = project.DBName,
-                Name = project.Name,
-                Description = project.Description,
-                URL = project.URL,
-                Logo = project.Logo,
-                Type = project.Type,
-                Techs = await GetTechnologies(project.Techs),
-            }));
-
-            return projects;
-            
-        }
-
         public async Task<IEnumerable<CUDMessage>> Add(InputProject newProject)
         {
             var newNexus = new Nexus()
@@ -247,7 +66,7 @@ namespace WCNexus.App.Services
                 Type = newProject.Type,
             };
 
-            var newProjectDBInstance = new ProjectDB()
+            var newStoredProjectInstance = new StoredProject()
             {
                 DBName = newProject.DBName,
                 Techs = newProject.Techs,
@@ -255,12 +74,12 @@ namespace WCNexus.App.Services
             };
 
             CUDMessage nexusAddMessage = await nexusService.Add(newNexus);
-            CUDMessage projectDBAddMessage = await projectDBService.Add(newProjectDBInstance);
+            CUDMessage StoredProjectAddMessage = await storedProjectService.Add(newStoredProjectInstance);
 
             return new List<CUDMessage>()
             {
                 nexusAddMessage,
-                projectDBAddMessage
+                StoredProjectAddMessage
             };
 
         }
@@ -280,9 +99,9 @@ namespace WCNexus.App.Services
                 }
             );
 
-            IEnumerable<ProjectDB> newProjectDBInstances = (
+            IEnumerable<StoredProject> newStoredProjectInstances = (
                 from project in newProjects
-                select new ProjectDB()
+                select new StoredProject()
                 {
                     DBName = project.DBName,
                     Techs = project.Techs,
@@ -291,130 +110,174 @@ namespace WCNexus.App.Services
             );
 
             CUDMessage nexusAddMessage = await nexusService.Add(newNexuses);
-            CUDMessage projectDBAddMessage = await projectDBService.Add(newProjectDBInstances);
+            CUDMessage StoredProjectAddMessage = await storedProjectService.Add(newStoredProjectInstances);
 
             return new List<CUDMessage>()
             {
                 nexusAddMessage,
-                projectDBAddMessage
+                StoredProjectAddMessage
             };
 
         }
 
-        /// <summary>
-        /// [This method is not implemented and should not be used!]
-        /// </summary>
-        public async Task<IEnumerable<CUDMessage>> Update(string dbname, UpdateDefinition<Project> token)
+        public async Task<IEnumerable<CUDMessage>> Update(string dbname, UpdateDefinition<JointProject> token)
         {
-            throw new NotImplementedException();
+            // extract update token for nexus and storedproject, by field existing in the nested doc
+            var tokenDoc = token.RenderToBsonDocument();
+            var storedProjectUpdateToken = ExtractUpdateToken<StoredProject>(tokenDoc, storedProjectInputFields);
+            var nexusUpdateToken = ExtractUpdateToken<Nexus>(tokenDoc, nexusInputFields);
+
+            // perform update on collections by that dbname and respective token
+            var storedProjectUpdateMessage = new CUDMessage()
+            {
+                OK = true,
+                NumAffected = 0,
+            };
+            var nexusUpdateMessage = new CUDMessage()
+            {
+                OK = true,
+                NumAffected = 0,
+            };
+
+            if (storedProjectUpdateToken is { })
+            {
+                storedProjectUpdateMessage = await storedProjectService.Update(dbname, storedProjectUpdateToken);
+            }
+
+            if (nexusUpdateToken is { })
+            {
+                nexusUpdateMessage = await nexusService.Update(dbname, nexusUpdateToken);
+            }
+
+            return new List<CUDMessage>()
+            {
+                storedProjectUpdateMessage,
+                nexusUpdateMessage
+            };
+
         }  
 
-        /// <summary>
-        /// [This method is not implemented and should not be used!]
-        /// </summary>
-        public async Task<IEnumerable<CUDMessage>> Update(FilterDefinition<Project> condition, UpdateDefinition<Project> token)
+        public async Task<IEnumerable<CUDMessage>> Update(FilterDefinition<JointProject> condition, UpdateDefinition<JointProject> token)
         {
-            throw new NotImplementedException();
+            // join 2 colllections and find the results
+            var projects = await Get(
+                condition,
+                new DBViewOption()
+                {
+                    Includes = new List<string>() {"dbname"},
+                }
+            );
+
+            // extract dbnames
+            List<string> dbnames = (
+                from project in projects
+                select project.DBName
+            ).ToList();
+
+            List<string> quotedNames = (
+                from name in dbnames
+                select $@"""{name}"""
+            ).ToList();
+
+            // extract update token for nexus and storedproject, by field existing in the nested doc
+            var tokenDoc = token.RenderToBsonDocument();
+            var storedProjectUpdateToken = ExtractUpdateToken<StoredProject>(tokenDoc, storedProjectInputFields);
+            var nexusUpdateToken = ExtractUpdateToken<Nexus>(tokenDoc, nexusInputFields);
+
+            // perform update on collections by those dbnames and respective token
+            string updateCondition = JsonUtil.CreateCompactLiteral($@"{{
+                ""dbname"": {{
+                    ""$in"": [ { string.Join(',', quotedNames) } ]
+                }}
+            }}");
+
+            var storedProjectUpdateMessage = new CUDMessage()
+            {
+                OK = true,
+                NumAffected = 0,
+            };
+            var nexusUpdateMessage = new CUDMessage()
+            {
+                OK = true,
+                NumAffected = 0,
+            };
+
+            if (storedProjectUpdateToken is { })
+            {
+                storedProjectUpdateMessage = await storedProjectService.Update((FilterDefinition<StoredProject>) updateCondition, storedProjectUpdateToken);
+            }
+
+            if (nexusUpdateToken is { })
+            {
+                nexusUpdateMessage = await nexusService.Update((FilterDefinition<Nexus>) updateCondition , nexusUpdateToken);
+            }
+
+            return new List<CUDMessage>()
+            {
+                storedProjectUpdateMessage,
+                nexusUpdateMessage
+            };
+
         }
 
         public async Task<IEnumerable<CUDMessage>> Delete(string dbname)
         {
             CUDMessage nexusDeleteMessage = await nexusService.Delete(dbname);
-            CUDMessage projectDBDeleteMessage = await projectDBService.Delete(dbname);
+            CUDMessage StoredProjectDeleteMessage = await storedProjectService.Delete(dbname);
 
             return new List<CUDMessage>()
             {
                 nexusDeleteMessage,
-                projectDBDeleteMessage
+                StoredProjectDeleteMessage
             };
 
         }
 
-        public async Task<IEnumerable<CUDMessage>> Delete(JsonElement deleteProjectDBNameFilter)
+        public async Task<IEnumerable<CUDMessage>> Delete(FilterDefinition<JointProject> projectCondition)
         {
-
-            FilterDefinition<Nexus> deleteNexusFilter = deleteProjectDBNameFilter.ToString();
-            FilterDefinition<ProjectDB> deleteProjectDBFilter = deleteProjectDBNameFilter.ToString();
-
-            CUDMessage nexusDeleteMessage = await nexusService.Delete(deleteNexusFilter);
-            CUDMessage projectDBDeleteMessage = await projectDBService.Delete(deleteProjectDBFilter as FilterDefinition<ProjectDB>);
-
-            return new List<CUDMessage>()
-            {
-                nexusDeleteMessage,
-                projectDBDeleteMessage
-            };
-
-        }
-
-        public async Task<IEnumerable<CUDMessage>> FindManyAndDelete(FilterDefinition<ProjectDB> projectDBCondition)
-        {
-            IEnumerable<ProjectDB> projectDBInstances = await projectDBService.Get(
-                projectDBCondition,
+            IEnumerable<JointProject> projects = await storedProjectService.LeftJoinAndGet(
+                projectCondition,
+                new DBLeftJoinOption()
+                {
+                    collectionName = "nexuses",
+                    localField = "dbname",
+                    foreignField = "dbname",
+                },
                 new DBViewOption()
                 {
-                    Includes = new List<string>() { "dbname" }
+                    Includes = new List<string>() {"dbname"}
                 }
             );
 
-            List<string> deleteProjectDBNames = (
-                from project in projectDBInstances
+            List<string> deleteStoredProjectNames = (
+                from project in projects
                 select project.DBName
             ).ToList();
 
-            
             List<string> quotedNames = (
-                from name in deleteProjectDBNames
+                from name in deleteStoredProjectNames
                 select $@"""{name}"""
             ).ToList();
 
-            JsonElement deleteToken = JsonUtil.CreateCompactDocument($@"{{
+            string deleteToken = JsonUtil.CreateCompactLiteral($@"{{
                 ""dbname"": {{
                     ""$in"": [ { string.Join(',', quotedNames) } ]
                 }}
-            }}").RootElement;
+            }}");
 
-            return await Delete(deleteToken);
+            CUDMessage nexusAddMessage = await nexusService.Delete((FilterDefinition<Nexus>)deleteToken);
+            CUDMessage StoredProjectAddMessage = await storedProjectService.Delete((FilterDefinition<StoredProject>)deleteToken);
 
-        }
+            return new List<CUDMessage>()
+            {
+                nexusAddMessage,
+                StoredProjectAddMessage
+            };
 
-        public async Task<IEnumerable<CUDMessage>> FindManyAndDelete(FilterDefinition<Nexus> nexusCondition)
-        {
-            IEnumerable<Nexus> nexusInstances = await nexusService.Get(
-                nexusCondition,
-                new DBViewOption()
-                {
-                    Includes = new List<string>() { "dbname", "type" }
-                }
-            );
-
-            IEnumerable<Nexus> deleteNexusInstances = (
-                from nexus in nexusInstances
-                where nexus.Type == "type-project"
-                select nexus
-            );
-
-            List<string> deleteProjectDBNames = (
-                from nexus in deleteNexusInstances
-                select nexus.DBName
-            ).ToList();
-
-            List<string> quotedNames = (
-                from name in deleteProjectDBNames
-                select $@"""{name}"""
-            ).ToList();
-
-            JsonElement deleteToken = JsonUtil.CreateCompactDocument($@"{{
-                ""dbname"": {{
-                    ""$in"": [ { string.Join(',', quotedNames) } ]
-                }}
-            }}").RootElement;
-            
-            return await Delete(deleteToken);
         }
 
         // get technology nexus
-        public async Task<IEnumerable<Nexus>> GetTechnologies(IEnumerable<string> techNames)
+        private async Task<IEnumerable<Nexus>> GetTechnologies(IEnumerable<string> techNames)
         {
 
             List<string> quotedTechnologyNames = (
@@ -434,6 +297,54 @@ namespace WCNexus.App.Services
         }
 
         // get project images
+        private async Task GetImages(IEnumerable<string> techNames)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        ///     Extract Update Token for a collection from a big Update Token that sets across multiple collections
+        /// </summary>
+        /// <typeparam name="T">The target collection type</typeparam>
+        /// <param name="updateTokenDocument">A Bson Document that should look like: {<$updateOperator1>: { <field1>: xxx, <field2>: xxx }, <$updateOperator2>: { <field1>: xxx, <field2>: xxx }}</param>
+        /// <param name="fields">Fields in a collection to filter out</param>
+        /// <returns></returns>
+        private UpdateDefinition<T> ExtractUpdateToken<T>(BsonDocument updateTokenDocument, IEnumerable<string> fields)
+        {
+            var originalTokenMap = updateTokenDocument.ToDictionary(
+                kv => kv.Name,
+                (kv) => {
+                    return kv.Value.ToBsonDocument().Elements.ToDictionary(el => el.Name, el => el.Value);
+                }
+            );
+
+            var updateTokenMap = new Dictionary<string, Dictionary<string, BsonValue>>();
+
+            foreach (var operatorKV in originalTokenMap)
+            {
+                var targetOperatorDict = updateTokenMap.GetValueOrDefault(operatorKV.Key);
+                foreach (var fieldKV in operatorKV.Value)
+                {
+                    if (fields.Contains(fieldKV.Key))
+                    {
+                        if (targetOperatorDict is null)
+                        {
+                            targetOperatorDict = new Dictionary<string, BsonValue>();
+                            updateTokenMap[operatorKV.Key] = targetOperatorDict;
+                        }
+                        targetOperatorDict.Add(fieldKV.Key, fieldKV.Value);
+                    }
+                }
+            }
+
+            if (updateTokenMap.Count > 0)
+            {
+                return updateTokenMap.ToJson();
+            }
+
+            return null;
+
+        }
 
     }
 }

@@ -3,7 +3,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace WCNexus.App.Models {
-    public class ProjectDB: IProjectDB
+    public class StoredProject: IStoredProject
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]

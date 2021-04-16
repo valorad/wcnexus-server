@@ -47,7 +47,8 @@ namespace WCNexus.App.Library
         public static JsonDocument CreateCompactDocument(string originalJson)
         {
             // remove all white spaces
-            string compactJsonLiteral = Regex.Replace(originalJson, @"\s+", "");
+            var pattern = @"\s+(?=(?:[^\'""]*[\'""][^\'""]*[\'""])*[^\'""]*$)";
+            string compactJsonLiteral = Regex.Replace(originalJson, pattern, "");
 
             // validate and return json element
             return JsonDocument.Parse(compactJsonLiteral);

@@ -4,9 +4,9 @@ using WCNexus.App.Models;
 
 namespace WCNexus.App.Services
 {
-    public class ProjectDBService: DataAccessService<ProjectDB>, IProjectDBService
+    public class StoredProjectService: DataAccessService<StoredProject>, IStoredProjectService
     {
-        public ProjectDBService(IDBCollection collection): base(collection.Projects)
+        public StoredProjectService(IDBCollection collection): base(collection.Projects)
         {
             this.indexFieldName = "dbname";
         }

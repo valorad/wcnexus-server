@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using WCNexus.App.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using WCNexus.App.Library;
 
 namespace WCNexus.App.Database
 {
@@ -15,7 +16,7 @@ namespace WCNexus.App.Database
             return query.Limit(pageSize).Skip((currentPage - 1) * pageSize);
         }
 
-        public static ProjectionDefinition<T> BuildProjection<T>(IProjectionOption options)
+        public static string BuildProjection(IProjectionOption options)
         {
             var projectionToken = new Dictionary<string, int>() { };
 
@@ -46,6 +47,35 @@ namespace WCNexus.App.Database
                 return $"{{ {options.OrderBy}: { (options.Order == "desc" ? -1 : 1) } }}";
             }
             return "{}";
+        }
+
+        public static void AddPaginationToPipeline(IList<BsonDocument> pipelineStages, IPaginationOption options)
+        {
+            int pageSize = (options.PerPage > 0 ? options.PerPage : 10);
+            int currentPage = (options.Page > 0 ? options.Page : 1);
+
+            pipelineStages.Add(BsonDocument.Parse(JsonUtil.CreateCompactLiteral($@"{{
+                ""$limit"": {pageSize}
+            }}")));
+
+            pipelineStages.Add(BsonDocument.Parse(JsonUtil.CreateCompactLiteral($@"{{
+                ""$skip"": {(currentPage - 1) * pageSize}
+            }}")));
+
+        }
+
+        public static void AddProjectionToPipeline(IList<BsonDocument> pipelineStages, IProjectionOption options)
+        {
+            pipelineStages.Add(BsonDocument.Parse(JsonUtil.CreateCompactLiteral($@"{{
+                ""$project"": {BuildProjection(options)}
+            }}")));
+        }
+
+        public static void AddSortToPipeline(IList<BsonDocument> pipelineStages, ISortOption options)
+        {
+            pipelineStages.Add(BsonDocument.Parse(JsonUtil.CreateCompactLiteral($@"{{
+                ""$sort"": {BuildSort(options)}
+            }}")));
         }
 
     }

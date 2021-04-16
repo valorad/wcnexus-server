@@ -15,7 +15,7 @@ namespace WCNexus.App.Database
         }
 
         public IMongoCollection<Nexus> Nexuses => dbInstance.GetCollection<Nexus>("nexuses");
-        public IMongoCollection<ProjectDB> Projects => dbInstance.GetCollection<ProjectDB>("projects");
+        public IMongoCollection<StoredProject> Projects => dbInstance.GetCollection<StoredProject>("projects");
         
     }
 }

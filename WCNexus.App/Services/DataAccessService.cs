@@ -1,39 +1,44 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using System.Threading.Tasks;
 using WCNexus.App.Database;
 using WCNexus.App.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Linq;
+using WCNexus.App.Library;
 
 namespace WCNexus.App.Services
 {
     public class DataAccessService<T> : IDataAccessService<T>
     {
-
-        private readonly IMongoCollection<T> collection;
+        public IMongoCollection<T> collection { get; }
         public string indexFieldName { get; set; }
         public DataAccessService(IMongoCollection<T> collection)
         {
             this.collection = collection;
         }
 
-        private FilterDefinition<T> BuildConditions(string indexFieldValue)
+        private string BuildConditions(string indexFieldValue)
         {
 
-            FilterDefinition<T> condition;
+            var condition = "";
             if (indexFieldName == "_id")
             {
-                condition = Builders<T>.Filter.Eq("_id", ObjectId.Parse(indexFieldValue));
+                condition = Builders<T>.Filter.Eq("_id", ObjectId.Parse(indexFieldValue)).RenderToBsonDocument().ToString();
             }
             else
             {
                 condition = "{" + $" \"{indexFieldName}\": " + $"\"{indexFieldValue}\"" + "}";
             }
             return condition;
+        }
 
+        private void AddFilterToPipeline(IList<BsonDocument> pipelineStages, string conditionLiteral)
+        {
+            pipelineStages.Add(BsonDocument.Parse(JsonUtil.CreateCompactLiteral($@"{{
+                ""$match"": {conditionLiteral}
+            }}")));
         }
 
         public async Task<T> Get(string indexFieldValue, IDBViewOption options = null)
@@ -46,7 +51,7 @@ namespace WCNexus.App.Services
             if (options is { })
             {
                 query = View.MakePagination(query, options);
-                query = query.Project<T>(View.BuildProjection<T>(options));
+                query = query.Project<T>(View.BuildProjection(options));
                 query.Sort(View.BuildSort(options));
             }
 
@@ -60,7 +65,7 @@ namespace WCNexus.App.Services
             if (options is { })
             {
                 query = View.MakePagination(query, options);
-                query = query.Project<T>(View.BuildProjection<T>(options));
+                query = query.Project<T>(View.BuildProjection(options));
                 query.Sort(View.BuildSort(options));
             }
 
@@ -213,5 +218,93 @@ namespace WCNexus.App.Services
             }
         }
 
+        public IEnumerable<BsonDocument> BuildLeftJoinPipelineStages(DBLeftJoinOption options)
+        {
+            return new List<BsonDocument>()
+            {
+                BsonDocument.Parse(JsonUtil.CreateCompactLiteral($@"{{
+                    ""$lookup"": {{
+                        ""from"": ""{options.collectionName}"",
+                        ""localField"": ""{options.localField}"",
+                        ""foreignField"": ""{options.foreignField}"",
+                        ""as"": ""jointDBName""
+                    }}
+                }}")),
+
+                BsonDocument.Parse(JsonUtil.CreateCompactLiteral($@"{{
+                    ""$replaceRoot"": {{
+                        ""newRoot"": {{
+                            ""$mergeObjects"": [
+                                {{
+                                    ""$arrayElemAt"": [ ""$jointDBName"", 0 ]
+                                }},
+                                ""$$ROOT""
+                            ]
+                        }}
+                    }}
+                }}")),
+
+                BsonDocument.Parse(JsonUtil.CreateCompactLiteral($@"{{
+                   ""$project"": {{ ""jointDBName"": 0 }}
+                }}")),
+
+
+
+            };
+        }
+
+        public async Task<TJoint> LeftJoinAndGet<TJoint>(string indexFieldValue, DBLeftJoinOption joinOptions, IDBViewOption viewOption = null)
+        {
+            List<BsonDocument> pipelineStages = BuildLeftJoinPipelineStages(joinOptions).ToList();
+
+            AddFilterToPipeline(pipelineStages, BuildConditions(indexFieldValue));
+
+            if (viewOption is { })
+            {
+                if (viewOption.Includes is { } || viewOption.Excludes is { })
+                {
+                    View.AddProjectionToPipeline(pipelineStages, viewOption);
+                }
+                if (viewOption.OrderBy != null)
+                {
+                    View.AddSortToPipeline(pipelineStages, viewOption);
+                }
+            }
+
+            PipelineDefinition<T, TJoint> pipeline = pipelineStages;
+
+            return await collection.Aggregate(pipeline).FirstOrDefaultAsync();
+
+        }
+        public async Task<IEnumerable<TJoint>> LeftJoinAndGet<TJoint>(FilterDefinition<TJoint> condition, DBLeftJoinOption joinOptions, IDBViewOption viewOption = null)
+        {
+            List<BsonDocument> pipelineStages = BuildLeftJoinPipelineStages(joinOptions).ToList();
+
+            AddFilterToPipeline(pipelineStages, condition.RenderToBsonDocument().ToString());
+
+            if (viewOption is null)
+            {
+                viewOption = new DBViewOption();
+                View.AddPaginationToPipeline(pipelineStages, viewOption);
+            }
+            else 
+            {
+                if (viewOption.Includes is { } || viewOption.Excludes is { })
+                {
+                    View.AddProjectionToPipeline(pipelineStages, viewOption);
+                }
+                if (viewOption.OrderBy != null)
+                {
+                    View.AddSortToPipeline(pipelineStages, viewOption);
+                }
+            }
+
+            PipelineDefinition<T, TJoint> pipeline = pipelineStages;
+
+            return await collection.Aggregate(pipeline).ToListAsync();
+
+        }
+
     }
+
 }

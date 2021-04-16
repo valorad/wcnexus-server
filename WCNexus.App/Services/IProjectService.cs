@@ -8,16 +8,12 @@ namespace WCNexus.App.Services
 {
     public interface IProjectService
     {
-        Task<Project> Get(string dbname, IDBViewOption options = null);
-        Task<IEnumerable<Project>> Get(FilterDefinition<ProjectDB> projectCondition, IDBViewOption options = null);
-        Task<IEnumerable<Project>> Get(FilterDefinition<Nexus> projectCondition, IDBViewOption options = null);
+        Task<JointProject> Get(string dbname, IDBViewOption options = null);        Task<IEnumerable<JointProject>> Get(FilterDefinition<JointProject> projectCondition, IDBViewOption options = null);
         Task<IEnumerable<CUDMessage>> Add(InputProject newProject);
         Task<IEnumerable<CUDMessage>> Add(IEnumerable<InputProject> newProjects);
-        Task<IEnumerable<CUDMessage>> Update(string dbname, UpdateDefinition<Project> token);
-        Task<IEnumerable<CUDMessage>> Update(FilterDefinition<Project> condition, UpdateDefinition<Project> token);
+        Task<IEnumerable<CUDMessage>> Update(string dbname, UpdateDefinition<JointProject> token);
+        Task<IEnumerable<CUDMessage>> Update(FilterDefinition<JointProject> condition, UpdateDefinition<JointProject> token);
         Task<IEnumerable<CUDMessage>> Delete(string dbname);
-        Task<IEnumerable<CUDMessage>> Delete(JsonElement deleteProjectDBNameFilter);
-        Task<IEnumerable<CUDMessage>> FindManyAndDelete(FilterDefinition<ProjectDB> projectDBCondition);
-        Task<IEnumerable<CUDMessage>> FindManyAndDelete(FilterDefinition<Nexus> nexusCondition);
+        Task<IEnumerable<CUDMessage>> Delete(FilterDefinition<JointProject> projectCondition);
     }
 }

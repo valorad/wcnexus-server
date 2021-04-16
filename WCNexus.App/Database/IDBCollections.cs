@@ -6,6 +6,6 @@ namespace WCNexus.App.Database
     public interface IDBCollection
     {
         IMongoCollection<Nexus> Nexuses { get; }
-        IMongoCollection<ProjectDB> Projects { get; }
+        IMongoCollection<StoredProject> Projects { get; }
     }
 }

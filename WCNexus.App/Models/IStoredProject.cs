@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace WCNexus.App.Models
 {
-    public interface IProjectDB
+    public interface IStoredProject
     {
         string DBName { get; set; }
         IEnumerable<string> Techs { get; set; }
