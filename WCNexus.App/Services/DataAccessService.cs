@@ -12,11 +12,17 @@ namespace WCNexus.App.Services
 {
     public class DataAccessService<T> : IDataAccessService<T>
     {
-        public IMongoCollection<T> collection { get; }
-        public string indexFieldName { get; set; }
-        public DataAccessService(IMongoCollection<T> collection)
+        private readonly IMongoCollection<T> collection;
+        public string indexFieldName { get; }
+        public CollectionNamespace collectionNamespace { get; }
+        public DataAccessService(
+            IMongoCollection<T> collection,
+            string indexFieldName
+        )
         {
+            this.indexFieldName = indexFieldName;
             this.collection = collection;
+            this.collectionNamespace = collection.CollectionNamespace;
         }
 
         private string BuildConditions(string indexFieldValue)

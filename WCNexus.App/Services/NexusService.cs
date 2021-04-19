@@ -9,10 +9,11 @@ namespace WCNexus.App.Services
 {
     public class NexusService: DataAccessService<Nexus>, INexusService
     {
-        public NexusService(IDBCollection collection): base(collection.Nexuses)
-        {
-            this.indexFieldName = "dbname";
-        }
+
+        public NexusService(IDBCollection collection): base(
+            collection: collection.Nexuses,
+            indexFieldName: "dbname"
+        ){}
 
         // The Add methods in this service aim to convert inputModel to Model in DB
 

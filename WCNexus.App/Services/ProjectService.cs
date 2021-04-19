@@ -31,7 +31,7 @@ namespace WCNexus.App.Services
                 dbname,
                 new DBLeftJoinOption()
                 {
-                    collectionName = "nexuses",
+                    collectionName = nexusService.collectionNamespace.CollectionName,
                     localField = "dbname",
                     foreignField = "dbname",
                 },
@@ -46,7 +46,7 @@ namespace WCNexus.App.Services
                 projectCondition,
                 new DBLeftJoinOption()
                 {
-                    collectionName = "nexuses",
+                    collectionName = nexusService.collectionNamespace.CollectionName,
                     localField = "dbname",
                     foreignField = "dbname",
                 },
@@ -239,7 +239,7 @@ namespace WCNexus.App.Services
                 projectCondition,
                 new DBLeftJoinOption()
                 {
-                    collectionName = "nexuses",
+                    collectionName = nexusService.collectionNamespace.CollectionName,
                     localField = "dbname",
                     foreignField = "dbname",
                 },

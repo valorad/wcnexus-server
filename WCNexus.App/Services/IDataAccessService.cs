@@ -8,8 +8,8 @@ namespace WCNexus.App.Services
 {
     public interface IDataAccessService<T>
     {
-        IMongoCollection<T> collection { get; }
-        string indexFieldName { get; set; }
+        CollectionNamespace collectionNamespace { get; }
+        string indexFieldName { get; }
         Task<T> Get(string indexField, IDBViewOption options = null);
         Task<IEnumerable<T>> Get(FilterDefinition<T> condition, IDBViewOption options = null);
         Task<CUDMessage> Add(T newItem);

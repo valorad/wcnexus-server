@@ -6,10 +6,10 @@ namespace WCNexus.App.Services
 {
     public class StoredProjectService: DataAccessService<StoredProject>, IStoredProjectService
     {
-        public StoredProjectService(IDBCollection collection): base(collection.Projects)
-        {
-            this.indexFieldName = "dbname";
-        }
+        public StoredProjectService(IDBCollection collection): base(
+            collection: collection.Projects,
+            indexFieldName: "dbname"
+        ){}
         
     }
 }
