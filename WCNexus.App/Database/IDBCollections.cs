@@ -7,5 +7,6 @@ namespace WCNexus.App.Database
     {
         IMongoCollection<Nexus> Nexuses { get; }
         IMongoCollection<StoredProject> Projects { get; }
+        IMongoCollection<Photo> Photos { get; }
     }
 }
