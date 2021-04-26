@@ -47,7 +47,9 @@ namespace WCNexus.App
 
             // provide services
             services.AddSingleton<INexusService, NexusService>();
-
+            services.AddSingleton<IProjectService, ProjectService>();
+            services.AddSingleton<IStoredProjectService, StoredProjectService>();
+            services.AddSingleton<IPhotoService, PhotoService>();
 
             // others
 

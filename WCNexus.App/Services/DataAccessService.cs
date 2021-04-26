@@ -94,9 +94,9 @@ namespace WCNexus.App.Services
             {
                 return new CUDMessage()
                 {
-                    OK = true,
+                    OK = false,
                     NumAffected = 0,
-                    Message = e.ToString(),
+                    Message = e.Message.ToString(),
                 };
             }
         }
@@ -119,7 +119,7 @@ namespace WCNexus.App.Services
                 {
                     OK = false,
                     NumAffected = 0,
-                    Message = e.ToString(),
+                    Message = e.Message.ToString(),
                 };
             }
         }
@@ -143,7 +143,7 @@ namespace WCNexus.App.Services
             {
                 return new CUDMessage()
                 {
-                    Message = e.ToString(),
+                    Message = e.Message.ToString(),
                     NumAffected = 0,
                     OK = false,
                 };
@@ -166,7 +166,7 @@ namespace WCNexus.App.Services
             {
                 return new CUDMessage()
                 {
-                    Message = e.ToString(),
+                    Message = e.Message.ToString(),
                     NumAffected = 0,
                     OK = false,
                 };
@@ -195,7 +195,7 @@ namespace WCNexus.App.Services
                 {
                     OK = false,
                     NumAffected = 0,
-                    Message = e.ToString(),
+                    Message = e.Message.ToString(),
                 };
             }
         }
@@ -219,7 +219,7 @@ namespace WCNexus.App.Services
                 {
                     OK = false,
                     NumAffected = 0,
-                    Message = e.ToString(),
+                    Message = e.Message.ToString(),
                 };
             }
         }

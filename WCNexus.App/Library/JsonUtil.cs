@@ -60,6 +60,10 @@ namespace WCNexus.App.Library
             return CreateCompactDocument(originalJson).RootElement.ToString();
         }
 
+        public static string CreateLiteral(string originalJson)
+        {
+            return JsonDocument.Parse(originalJson).RootElement.ToString();
+        }
 
     #region Private methods
 
