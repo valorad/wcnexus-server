@@ -193,9 +193,34 @@ namespace WCNexus.App.Controllers
         [HttpPatch("dbname/{dbname}")]
         public async Task<IActionResult> UpdateSingle(string dbname, [FromBody] UpdateSingleRequest request)
         {
-            CUDMessage message = await nexusService.Update(dbname, request.Token);
-            if (message.OK && message.NumAffected > 0)
+
+            // validation
+            if (request.Token is null)
             {
+                return BadRequest(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = 0,
+                        Message = $@"""token"" field cannot be empty."
+                    }
+                );
+            }
+
+            // try deserializing the update token
+            UpdateDefinition<Nexus> token = request.Token.RootElement.ToString();
+            CUDMessage message = await nexusService.Update(dbname, token);
+
+            if (message.OK)
+            {
+
+                if (message.NumAffected <= 0)
+                {
+                    message.OK = false;
+                    Response.StatusCode = 404;
+                    message.Message = $"Unable to find a matching {dbname} to update.";
+                    return new JsonResult(message);
+                }
+
                 message.Message = $"Successfuly updated {dbname}.";
                 return Ok(message);
             }
@@ -211,21 +236,67 @@ namespace WCNexus.App.Controllers
         public async Task<IActionResult> UpdateList([FromBody] UpdateListRequest request)
         {
             // validation
-            if (request.Condition.RenderToBsonDocument().Elements.Count() <= 0)
+            if (request.Condition is null)
             {
-                return BadRequest($"Unconditional updating is not allowed.");
+                return BadRequest(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = 0,
+                        Message = $@"""condition"" field cannot be empty."
+                    }
+                );
             }
 
-            if (request.Token.RenderToBsonDocument().Elements.Count() <= 0)
+            if (request.Token is null)
             {
-                return BadRequest($"The update token is missing");
+                return BadRequest(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = 0,
+                        Message = $@"""token"" field cannot be empty."
+                    }
+                );
             }
+
+            if (request.Condition.RootElement.EnumerateObject().Count() <= 0)
+            {
+                return BadRequest(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = 0,
+                        Message = $@"Unconditional updating is not allowed."
+                    }
+                );
+            }
+
+            if (request.Token.RootElement.EnumerateObject().Count() <= 0)
+            {
+                return BadRequest(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = 0,
+                        Message = $"The update token is missing"
+                    }
+                );
+            }
+
+            FilterDefinition<Nexus> condition = request.Condition.RootElement.ToString();
+            UpdateDefinition<Nexus> token = request.Token.RootElement.ToString();
 
             // begin updates
-            CUDMessage message = await nexusService.Update(request.Condition, request.Token);
+            CUDMessage message = await nexusService.Update(condition, token);
 
-            if (message.OK && message.NumAffected > 0)
+            if (message.OK)
             {
+
+                if (message.NumAffected <= 0)
+                {
+                    message.OK = false;
+                    Response.StatusCode = 404;
+                    message.Message = $"Unable to find the matching Nexuses to update.";
+                    return new JsonResult(message);
+                }
+
                 message.Message = $"Successfuly updated {message.NumAffected} Nexuses";
                 return Ok(message);
             }
@@ -242,6 +313,14 @@ namespace WCNexus.App.Controllers
             CUDMessage message = await nexusService.Delete(dbname);
             if (message.OK)
             {
+                if (message.NumAffected <= 0)
+                {
+                    message.OK = false;
+                    Response.StatusCode = 404;
+                    message.Message = $"Unable to find a matching {dbname} to delete.";
+                    return new JsonResult(message);
+                }
+
                 message.Message = $"Successfuly deleted {dbname}";
                 return Ok(message);
             }
@@ -256,15 +335,41 @@ namespace WCNexus.App.Controllers
         public async Task<IActionResult> DeleteList([FromBody] DeleteListRequest request)
         {
             // validation
-            if (request.Condition.RenderToBsonDocument().Elements.Count() <= 0)
+            if (request.Condition is null)
             {
-                return BadRequest($"Unconditional deleting is not allowed.");
+                return BadRequest(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = 0,
+                        Message = $@"""condition"" field cannot be empty."
+                    }
+                );
+            }
+            if (request.Condition.RootElement.EnumerateObject().Count() <= 0)
+            {
+                return BadRequest(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = 0,
+                        Message = $@"Unconditional deleting is not allowed."
+                    }
+                );
             }
 
+            FilterDefinition<Nexus> condition = request.Condition.RootElement.ToString();
+
             // begin delete
-            CUDMessage message = await nexusService.Delete(request.Condition);
+            CUDMessage message = await nexusService.Delete(condition);
             if (message.OK)
             {
+                if (message.NumAffected <= 0)
+                {
+                    message.OK = false;
+                    Response.StatusCode = 404;
+                    message.Message = $"Unable to find the matching Nexuses to delete.";
+                    return new JsonResult(message);
+                }
+
                 message.Message = $"Successfuly deleted {message.NumAffected} Nexuses";
                 return Ok(message);
             }
@@ -274,6 +379,8 @@ namespace WCNexus.App.Controllers
             Response.StatusCode = 500;
             return new JsonResult(message);
         }
+
+        #region private models
         
         public class GetSingleQuery
         {
@@ -295,21 +402,21 @@ namespace WCNexus.App.Controllers
         }
         public class UpdateSingleRequest 
         {
-            public UpdateDefinition<Nexus> Token { get; set; }
+            public JsonDocument Token { get; set; }
         }
         public class UpdateListRequest 
         {
-            public FilterDefinition<Nexus> Condition { get; set; }
-            public UpdateDefinition<Nexus> Token { get; set; }
+            public JsonDocument Condition { get; set; }
+            public JsonDocument Token { get; set; }
         }
 
         public class DeleteListRequest 
         {
-            public FilterDefinition<Nexus> Condition { get; set; }
+            public JsonDocument Condition { get; set; }
         }
 
+        #endregion
+
     }
-
-
 
 }
