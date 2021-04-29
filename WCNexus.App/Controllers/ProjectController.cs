@@ -14,18 +14,18 @@ namespace WCNexus.App.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class NexusController: ControllerBase
+    public class ProjectController: ControllerBase
     {
-        private readonly ILogger<NexusController> logger;
-        private readonly INexusService nexusService;
+        private readonly ILogger<ProjectController> logger;
+        private readonly IProjectService projectService;
 
-        public NexusController(
-            ILogger<NexusController> logger,
-            INexusService nexusService
+        public ProjectController(
+            ILogger<ProjectController> logger,
+            IProjectService projectService
         )
         {
             this.logger = logger;
-            this.nexusService = nexusService;
+            this.projectService = projectService;
         }
 
         [HttpGet("dbname/{dbname}")]
@@ -57,11 +57,11 @@ namespace WCNexus.App.Controllers
                 }
             }
 
-            Nexus nexus = await nexusService.Get(dbname, options);
+            JointProject project = await projectService.Get(dbname, options);
 
-            if (nexus is {})
+            if (project is {})
             {
-                return Ok(nexus);
+                return Ok(project);
             }
 
             return NotFound(new object());
@@ -71,7 +71,7 @@ namespace WCNexus.App.Controllers
         public async Task<IActionResult> GetList([FromQuery] GetListQuery query)
         {
 
-            FilterDefinition<Nexus> condition = null;
+            FilterDefinition<JointProject> condition = null;
             IDBViewOption options = null;
 
             if (query.Condition is null)
@@ -120,9 +120,9 @@ namespace WCNexus.App.Controllers
                 }
             }
 
-            List<Nexus> nexues = (await nexusService.Get(condition, options)).ToList();
+            List<JointProject> projects = (await projectService.Get(condition, options)).ToList();
 
-            return Ok(nexues);
+            return Ok(projects);
         }
 
         [HttpPost]
@@ -130,29 +130,60 @@ namespace WCNexus.App.Controllers
         public async Task<IActionResult> AddSingle([FromBody] AddSingleRequest request)
         {
             // validation
-            if (request.NewNexus is null)
+            if (request.NewProject is null)
             {
                 return BadRequest(new CUDMessage()
                     {
                         OK = false,
                         NumAffected = 0,
-                        Message = $@"""newNexus"" field cannot be empty."
+                        Message = $@"""newProject"" field cannot be empty."
                     }
                 );
             }
 
             // begin add
-            CUDMessage message = await nexusService.Add(request.NewNexus);
-            if (message.OK)
+            List<CUDMessage> messages = (await projectService.Add(request.NewProject)).ToList();
+
+            bool isAllOkay = true;
+            foreach (var message in messages)
             {
-                message.Message = $"Successfuly added Nexus: {request.NewNexus.Name ?? request.NewNexus.DBName}.";
-                return Ok(message);
+                if (!message.OK)
+                {
+                    logger.LogError($"{message.Message}");
+                    isAllOkay = false;
+                }
             }
 
-            logger.LogError($"{message.Message}");
-            message.Message = $"Failed to add Nexus: {request.NewNexus.Name ?? request.NewNexus.DBName}.";
+            if (isAllOkay)
+            {
+
+                // long minCount = messages.Aggregate((long) 0, (prev, next) => {
+                //     if (next.NumAffected < prev)
+                //     {
+                //         return next.NumAffected;
+                //     }
+                //     return prev;
+                // });
+
+                long minCount = messages.Min(ele => ele.NumAffected);
+
+                return Ok(new CUDMessage()
+                {
+                    OK = true,
+                    NumAffected = minCount,
+                    Message = $"Successfuly added Project: {request.NewProject.Name ?? request.NewProject.DBName}."
+                });
+            }
+
             Response.StatusCode = 500;
-            return new JsonResult(message);
+
+            return new JsonResult(new CUDMessage()
+            {
+                OK = false,
+                NumAffected = 0,
+                Message = $"Failed to add Project: {request.NewProject.Name ?? request.NewProject.DBName}."
+            });
+
         }
 
         [HttpPost]
@@ -160,29 +191,51 @@ namespace WCNexus.App.Controllers
         public async Task<IActionResult> AddList([FromBody] AddListRequest request)
         {
             // validation
-            if (request.NewNexuses is null)
+            if (request.NewProjects is null)
             {
                 return BadRequest(new CUDMessage()
                     {
                         OK = false,
                         NumAffected = 0,
-                        Message = $@"""newNexuses"" field cannot be empty."
+                        Message = $@"""newProjects"" field cannot be empty."
                     }
                 );
             }
 
             // begin add
-            CUDMessage message = await nexusService.Add(request.NewNexuses);
-            if (message.OK)
+            List<CUDMessage> messages = (await projectService.Add(request.NewProjects)).ToList();
+
+            bool isAllOkay = true;
+            foreach (var message in messages)
             {
-                message.Message = $"Successfuly added {message.NumAffected} Nexuses.";
-                return Ok(message);
+                if (!message.OK)
+                {
+                    logger.LogError($"{message.Message}");
+                    isAllOkay = false;
+                }
             }
 
-            logger.LogError($"{message.Message}");
-            message.Message = $"Failed to add {request.NewNexuses.Count} Nexuses.";
+            if (isAllOkay)
+            {
+                long minCount = messages.Min(ele => ele.NumAffected);
+
+                return Ok(new CUDMessage()
+                {
+                    OK = true,
+                    NumAffected = minCount,
+                    Message = $"Successfuly added {minCount} Projects."
+                });
+
+            }
+
             Response.StatusCode = 500;
-            return new JsonResult(message);
+            return new JsonResult(new CUDMessage()
+            {
+                OK = false,
+                NumAffected = 0,
+                Message = $"Failed to add {request.NewProjects.Count} Projects."
+            });
+
         }
 
         [HttpPatch("dbname/{dbname}")]
@@ -202,28 +255,50 @@ namespace WCNexus.App.Controllers
             }
 
             // try deserializing the update token
-            UpdateDefinition<Nexus> token = request.Token.RootElement.ToString();
-            CUDMessage message = await nexusService.Update(dbname, token);
+            UpdateDefinition<JointProject> token = request.Token.RootElement.ToString();
+            List<CUDMessage> messages = (await projectService.Update(dbname, token)).ToList();
 
-            if (message.OK)
+            bool isAllOkay = true;
+            foreach (var message in messages)
             {
-
-                if (message.NumAffected <= 0)
+                if (!message.OK)
                 {
-                    message.OK = false;
-                    Response.StatusCode = 404;
-                    message.Message = $"Unable to find a matching {dbname} to update.";
-                    return new JsonResult(message);
+                    logger.LogError($"{message.Message}");
+                    isAllOkay = false;
                 }
-
-                message.Message = $"Successfuly updated {dbname}.";
-                return Ok(message);
             }
 
-            logger.LogError($"{message.Message}");
-            message.Message = $"Failed to update {dbname}.";
+            if (isAllOkay)
+            {
+                long maxCount = messages.Max(ele => ele.NumAffected);
+
+                if (maxCount <= 0)
+                {
+                    Response.StatusCode = 404;
+                    return new JsonResult(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = maxCount,
+                        Message = $"Unable to find a matching {dbname} to update."
+                    });
+                }
+
+                return Ok(new CUDMessage()
+                {
+                    OK = true,
+                    NumAffected = maxCount,
+                    Message = $"Successfuly updated {dbname}."
+                });
+            }
+
             Response.StatusCode = 500;
-            return new JsonResult(message);
+
+            return new JsonResult(new CUDMessage()
+            {
+                OK = false,
+                NumAffected = 0,
+                Message = $"Failed to update {dbname}."
+            });
 
         }
 
@@ -275,55 +350,103 @@ namespace WCNexus.App.Controllers
                 );
             }
 
-            FilterDefinition<Nexus> condition = request.Condition.RootElement.ToString();
-            UpdateDefinition<Nexus> token = request.Token.RootElement.ToString();
+            FilterDefinition<JointProject> condition = request.Condition.RootElement.ToString();
+            UpdateDefinition<JointProject> token = request.Token.RootElement.ToString();
 
             // begin updates
-            CUDMessage message = await nexusService.Update(condition, token);
+            List<CUDMessage> messages = (await projectService.Update(condition, token)).ToList();
 
-            if (message.OK)
+            bool isAllOkay = true;
+            foreach (var message in messages)
             {
-
-                if (message.NumAffected <= 0)
+                if (!message.OK)
                 {
-                    message.OK = false;
-                    Response.StatusCode = 404;
-                    message.Message = $"Unable to find the matching Nexuses to update.";
-                    return new JsonResult(message);
+                    logger.LogError($"{message.Message}");
+                    isAllOkay = false;
                 }
-
-                message.Message = $"Successfuly updated {message.NumAffected} Nexuses";
-                return Ok(message);
             }
 
-            logger.LogError($"{message.Message}");
-            message.Message = "Failed to update the selected Nexuses.";
+            if (isAllOkay)
+            {
+                long maxCount = messages.Max(ele => ele.NumAffected);
+
+                if (maxCount <= 0)
+                {
+                    Response.StatusCode = 404;
+                    return new JsonResult(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = maxCount,
+                        Message = $"Unable to find the matching Projects to update."
+                    });
+                }
+
+                return Ok(new CUDMessage()
+                {
+                    OK = true,
+                    NumAffected = maxCount,
+                    Message = $"Successfuly updated {maxCount} Projects."
+                });
+            }
+
             Response.StatusCode = 500;
-            return new JsonResult(message);
+
+            return new JsonResult(new CUDMessage()
+            {
+                OK = false,
+                NumAffected = 0,
+                Message = $"Failed to update the selected Projects."
+            });
+
         }
 
         [HttpDelete("dbname/{dbname}")]
         public async Task<IActionResult> DeleteSingle(string dbname)
         {
-            CUDMessage message = await nexusService.Delete(dbname);
-            if (message.OK)
-            {
-                if (message.NumAffected <= 0)
-                {
-                    message.OK = false;
-                    Response.StatusCode = 404;
-                    message.Message = $"Unable to find a matching {dbname} to delete.";
-                    return new JsonResult(message);
-                }
+            List<CUDMessage> messages = (await projectService.Delete(dbname)).ToList();
 
-                message.Message = $"Successfuly deleted {dbname}";
-                return Ok(message);
+            bool isAllOkay = true;
+            foreach (var message in messages)
+            {
+                if (!message.OK)
+                {
+                    logger.LogError($"{message.Message}");
+                    isAllOkay = false;
+                }
             }
 
-            logger.LogError($"{message.Message}");
-            message.Message = $"Failed to delete {dbname}.";
+            if (isAllOkay)
+            {
+                long maxCount = messages.Max(ele => ele.NumAffected);
+
+                if (maxCount <= 0)
+                {
+                    Response.StatusCode = 404;
+                    return new JsonResult(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = maxCount,
+                        Message = $"Unable to find a matching {dbname} to delete."
+                    });
+                }
+
+                return Ok(new CUDMessage()
+                {
+                    OK = true,
+                    NumAffected = maxCount,
+                    Message = $"Successfuly deleted {dbname}."
+                });
+            }
+
             Response.StatusCode = 500;
-            return new JsonResult(message);
+
+            return new JsonResult(new CUDMessage()
+            {
+                OK = false,
+                NumAffected = 0,
+                Message = $"Failed to delete {dbname}."
+            });
+
         }
 
         [HttpDelete]
@@ -351,28 +474,53 @@ namespace WCNexus.App.Controllers
                 );
             }
 
-            FilterDefinition<Nexus> condition = request.Condition.RootElement.ToString();
+            FilterDefinition<JointProject> condition = request.Condition.RootElement.ToString();
 
             // begin delete
-            CUDMessage message = await nexusService.Delete(condition);
-            if (message.OK)
-            {
-                if (message.NumAffected <= 0)
-                {
-                    message.OK = false;
-                    Response.StatusCode = 404;
-                    message.Message = $"Unable to find the matching Nexuses to delete.";
-                    return new JsonResult(message);
-                }
+            List<CUDMessage> messages = (await projectService.Delete(condition)).ToList();
 
-                message.Message = $"Successfuly deleted {message.NumAffected} Nexuses";
-                return Ok(message);
+            bool isAllOkay = true;
+            foreach (var message in messages)
+            {
+                if (!message.OK)
+                {
+                    logger.LogError($"{message.Message}");
+                    isAllOkay = false;
+                }
             }
 
-            logger.LogError($"{message.Message}");
-            message.Message = $"Failed to delete the selected Nexuses.";
+            if (isAllOkay)
+            {
+                long maxCount = messages.Max(ele => ele.NumAffected);
+
+                if (maxCount <= 0)
+                {
+                    Response.StatusCode = 404;
+                    return new JsonResult(new CUDMessage()
+                    {
+                        OK = false,
+                        NumAffected = maxCount,
+                        Message = $"Unable to find the matching Projects to delete."
+                    });
+                }
+
+                return Ok(new CUDMessage()
+                {
+                    OK = true,
+                    NumAffected = maxCount,
+                    Message = $"Successfuly deleted {maxCount} Projects."
+                });
+            }
+
             Response.StatusCode = 500;
-            return new JsonResult(message);
+
+            return new JsonResult(new CUDMessage()
+            {
+                OK = false,
+                NumAffected = 0,
+                Message = $"Failed to delete the selected Projects."
+            });
+
         }
 
         #region private models
@@ -389,11 +537,11 @@ namespace WCNexus.App.Controllers
         }
         public class AddSingleRequest 
         {
-            public InputNexus NewNexus { get; set; }
+            public InputProject NewProject { get; set; }
         }
         public class AddListRequest 
         {
-            public IList<InputNexus> NewNexuses { get; set; }
+            public IList<InputProject> NewProjects { get; set; }
         }
         public class UpdateSingleRequest 
         {

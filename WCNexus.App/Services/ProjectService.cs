@@ -63,7 +63,7 @@ namespace WCNexus.App.Services
                 Description = newProject.Description,
                 URL = newProject.URL,
                 Logo = newProject.Logo,
-                Type = newProject.Type,
+                Type = "type-project",
             };
 
             var newStoredProjectInstance = new StoredProject()
@@ -95,7 +95,7 @@ namespace WCNexus.App.Services
                     Description = project.Description,
                     URL = project.URL,
                     Logo = project.Logo,
-                    Type = project.Type,
+                    Type = "type-project",
                 }
             );
 
