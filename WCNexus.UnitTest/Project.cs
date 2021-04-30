@@ -295,14 +295,12 @@ namespace WCNexus.UnitTest
             {
                 new InputPhoto()
                 {
-                    DBName = "photo-6d94a061-7262-4461-84d3-2dee7694d2cf",
                     Name = "RandomPhoto",
                     Description = "Random Photo",
                     URL = "goodyolo.jpg",
                 },
                 new InputPhoto()
                 {
-                    DBName = "photo-a1a50046-7647-4c31-8e0f-54aff5d9f07c",
                     Name = "RandomPhoto2",
                     Description = "Random Photo 2",
                     URL = "strawberry.png",

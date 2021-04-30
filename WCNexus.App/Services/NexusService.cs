@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,7 +22,7 @@ namespace WCNexus.App.Services
         {
             return await base.Add(new Nexus()
             {
-                DBName = newNexus.DBName,
+                DBName = string.IsNullOrWhiteSpace(newNexus.DBName)? $"nexus-{Guid.NewGuid()}": newNexus.DBName,
                 Name = newNexus.Name,
                 Description = newNexus.Description,
                 URL = newNexus.URL,
@@ -37,7 +38,7 @@ namespace WCNexus.App.Services
                 from nexus in newNexuses
                 select new Nexus()
                 {
-                    DBName = nexus.DBName,
+                    DBName = string.IsNullOrWhiteSpace(nexus.DBName)? $"nexus-{Guid.NewGuid()}": nexus.DBName,
                     Name = nexus.Name,
                     Description = nexus.Description,
                     URL = nexus.URL,

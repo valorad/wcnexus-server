@@ -56,9 +56,10 @@ namespace WCNexus.App.Services
         }
         public async Task<IEnumerable<CUDMessage>> Add(InputProject newProject)
         {
+            var newDBName = string.IsNullOrWhiteSpace(newProject.DBName)? $"project-{Guid.NewGuid()}": newProject.DBName;
             var newNexus = new Nexus()
             {
-                DBName = newProject.DBName,
+                DBName = newDBName,
                 Name = newProject.Name,
                 Description = newProject.Description,
                 URL = newProject.URL,
@@ -68,7 +69,7 @@ namespace WCNexus.App.Services
 
             var newStoredProjectInstance = new StoredProject()
             {
-                DBName = newProject.DBName,
+                DBName = newDBName,
                 Techs = newProject.Techs,
                 Images = newProject.Images,
             };
@@ -86,6 +87,15 @@ namespace WCNexus.App.Services
 
         public async Task<IEnumerable<CUDMessage>> Add(IEnumerable<InputProject> newProjects)
         {
+            // fill each dbname with GUID if null
+            newProjects = newProjects.Select(ele => {
+                if (string.IsNullOrWhiteSpace(ele.DBName))
+                {
+                    ele.DBName = $"project-{Guid.NewGuid()}";
+                }
+                return ele;
+            });
+
             IEnumerable<Nexus> newNexuses = (
                 from project in newProjects
                 select new Nexus()

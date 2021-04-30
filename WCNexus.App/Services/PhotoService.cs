@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,7 +20,7 @@ namespace WCNexus.App.Services
         {
             return await base.Add(new Photo()
             {
-                DBName = newPhoto.DBName,
+                DBName = string.IsNullOrWhiteSpace(newPhoto.DBName)? $"photo-{Guid.NewGuid()}": newPhoto.DBName,
                 Name = newPhoto.Name,
                 Description = newPhoto.Description,
                 URL = newPhoto.URL,
@@ -33,7 +34,7 @@ namespace WCNexus.App.Services
                 from photo in newPhotos
                 select new Photo()
                 {
-                    DBName = photo.DBName,
+                    DBName = string.IsNullOrWhiteSpace(photo.DBName)? $"photo-{Guid.NewGuid()}": photo.DBName,
                     Name = photo.Name,
                     Description = photo.Description,
                     URL = photo.URL,
