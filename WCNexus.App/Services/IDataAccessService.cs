@@ -19,6 +19,9 @@ namespace WCNexus.App.Services
         Task<CUDMessage> Delete(FilterDefinition<T> condition);
         Task<TJoint> LeftJoinAndGet<TJoint>(string indexFieldValue, DBLeftJoinOption joinOptions, IDBViewOption viewOption = null);
         Task<IEnumerable<TJoint>> LeftJoinAndGet<TJoint>(FilterDefinition<TJoint> condition, DBLeftJoinOption joinOptions, IDBViewOption viewOption = null);
-
+        Task<CUDMessage> AddItemToList(string instanceArrayFieldName, string arrayIndexFieldValue, string instanceIndexFieldValue);
+        Task<CUDMessage> AddItemToList(string instanceArrayFieldName, IEnumerable<string> arrayIndexFieldValues, string instanceIndexFieldValue);
+        Task<CUDMessage> RemoveItemFromList(string instanceArrayFieldName, string arrayIndexFieldValue, string instanceIndexFieldValue);
+        Task<CUDMessage> RemoveItemFromList(string instanceArrayFieldName, IEnumerable<string> arrayIndexFieldValues, string instanceIndexFieldValue);
     }
 }

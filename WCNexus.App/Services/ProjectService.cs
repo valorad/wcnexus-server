@@ -276,6 +276,46 @@ namespace WCNexus.App.Services
 
         }
 
+        public async Task<CUDMessage> AddTechnology(string techDBName, string projectDBName)
+        {
+            return await storedProjectService.AddItemToList("techs", techDBName, projectDBName);
+        }
+
+        public async Task<CUDMessage> AddTechnology(IEnumerable<string> techDBNames, string projectDBName)
+        {
+            return await storedProjectService.AddItemToList("techs", techDBNames, projectDBName);
+        }
+
+        public async Task<CUDMessage> RemoveTechnology(string techDBName, string projectDBName)
+        {
+            return await storedProjectService.RemoveItemFromList("techs", techDBName, projectDBName);
+        }
+
+        public async Task<CUDMessage> RemoveTechnology(IEnumerable<string> techDBNames, string projectDBName)
+        {
+            return await storedProjectService.RemoveItemFromList("techs", techDBNames, projectDBName);
+        }
+
+        public async Task<CUDMessage> AddImage(string imageDBName, string projectDBName)
+        {
+            return await storedProjectService.AddItemToList("images", imageDBName, projectDBName);
+        }
+
+        public async Task<CUDMessage> AddImage(IEnumerable<string> imageDBNames, string projectDBName)
+        {
+            return await storedProjectService.AddItemToList("images", imageDBNames, projectDBName);
+        }
+
+        public async Task<CUDMessage> RemoveImage(string imageDBName, string projectDBName)
+        {
+            return await storedProjectService.RemoveItemFromList("images", imageDBName, projectDBName);
+        }
+
+        public async Task<CUDMessage> RemoveImage(IEnumerable<string> imageDBNames, string projectDBName)
+        {
+            return await storedProjectService.RemoveItemFromList("images", imageDBNames, projectDBName);
+        }
+
         // get technology nexus
         private async Task<IEnumerable<Nexus>> GetTechnologies(IEnumerable<string> techNames)
         {

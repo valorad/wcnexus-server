@@ -254,8 +254,6 @@ namespace WCNexus.App.Services
                    ""$project"": {{ ""jointDBName"": 0 }}
                 }}")),
 
-
-
             };
         }
 
@@ -309,6 +307,60 @@ namespace WCNexus.App.Services
 
             return await collection.Aggregate(pipeline).ToListAsync();
 
+        }
+
+        public async Task<CUDMessage> AddItemToList(string instanceArrayFieldName, string arrayIndexFieldValue, string instanceIndexFieldValue)
+        {
+            UpdateDefinition<T> updateToken = JsonUtil.CreateCompactLiteral($@"{{
+                ""$push"": {{
+                    ""{instanceArrayFieldName}"": ""{arrayIndexFieldValue}""
+                }}
+            }}");
+            return await Update(instanceIndexFieldValue, updateToken);
+        }
+
+        public async Task<CUDMessage> AddItemToList(string instanceArrayFieldName, IEnumerable<string> arrayIndexFieldValues, string instanceIndexFieldValue)
+        {
+            List<string> quotedNames = (
+                from name in arrayIndexFieldValues
+                select $@"""{name}"""
+            ).ToList();
+
+            UpdateDefinition<T> updateToken = JsonUtil.CreateCompactLiteral($@"{{
+                ""$push"": {{
+                    ""{instanceArrayFieldName}"": {{
+                        ""$each"": [ { string.Join(',', quotedNames) } ]
+                    }}
+                }}
+            }}");
+            return await Update(instanceIndexFieldValue, updateToken);
+        }
+
+        public async Task<CUDMessage> RemoveItemFromList(string instanceArrayFieldName, string arrayIndexFieldValue, string instanceIndexFieldValue)
+        {
+            UpdateDefinition<T> updateToken = JsonUtil.CreateCompactLiteral($@"{{
+                ""$pull"": {{
+                    ""{instanceArrayFieldName}"": ""{arrayIndexFieldValue}""
+                }}
+            }}");
+            return await Update(instanceIndexFieldValue, updateToken);
+        }
+
+        public async Task<CUDMessage> RemoveItemFromList(string instanceArrayFieldName, IEnumerable<string> arrayIndexFieldValues, string instanceIndexFieldValue)
+        {
+            List<string> quotedNames = (
+                from name in arrayIndexFieldValues
+                select $@"""{name}"""
+            ).ToList();
+
+            UpdateDefinition<T> updateToken = JsonUtil.CreateCompactLiteral($@"{{
+                ""$pull"": {{
+                    ""{instanceArrayFieldName}"": {{
+                        ""$in"": [ { string.Join(',', quotedNames) } ]
+                    }}
+                }}
+            }}");
+            return await Update(instanceIndexFieldValue, updateToken);
         }
 
     }
