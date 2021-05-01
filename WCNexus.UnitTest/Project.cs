@@ -20,6 +20,7 @@ namespace WCNexus.UnitTest
         private readonly IProjectService projectService;
         private readonly INexusService nexusService;
         private readonly IStoredProjectService storedProjectService;
+        private readonly IPhotoService photoService;
 
         public ProjectTest(ServiceFixture fixture)
         {
@@ -29,6 +30,7 @@ namespace WCNexus.UnitTest
             projectService = serviceProvider.GetService<IProjectService>();
             nexusService = serviceProvider.GetService<INexusService>();
             storedProjectService = serviceProvider.GetService<IStoredProjectService>();
+            photoService = serviceProvider.GetService<IPhotoService>();
         }
 
         public void Dispose()
@@ -39,11 +41,14 @@ namespace WCNexus.UnitTest
 
         [Theory(DisplayName = "Project singular test")]
         [ClassData(typeof(DataSingleProject))]
-        public async void SingleCRUDTest(InputProject newProject, IList<InputNexus> technologies)
+        public async void SingleCRUDTest(InputProject newProject, IList<InputNexus> technologies, IList<InputPhoto> photos)
         {
 
             // Add existing technologies
             await nexusService.Add(technologies);
+
+            // Add existing photos
+            await photoService.Add(photos);
 
             // Add single
             List<CUDMessage> addMessages = (await projectService.Add(newProject)).ToList();
@@ -254,9 +259,14 @@ namespace WCNexus.UnitTest
                 URL = null,
                 Logo = null,
                 Type = "type-project",
-                Techs = new List<string>() {
+                Techs = new List<string>()
+                {
                     "tech-csharp",
                     "tech-angular",
+                },
+                Images = new List<string>()
+                {
+                    "photo-timely-romance"
                 }
             };
 

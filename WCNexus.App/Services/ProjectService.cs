@@ -13,8 +13,8 @@ namespace WCNexus.App.Services
     {
         private readonly IStoredProjectService storedProjectService;
         private readonly INexusService nexusService;
-        private List<string> storedProjectInputFields = new List<string>() {"techs", "images"};
-        private List<string> nexusInputFields = new List<string>() {"dbname", "name", "description", "url", "logo"}; // does not allow updating "type" field
+        private readonly List<string> storedProjectInputFields = new() {"techs", "images"};
+        private readonly List<string> nexusInputFields = new() {"dbname", "name", "description", "url", "logo"}; // does not allow updating "type" field
 
         public ProjectService(
             IStoredProjectService storedProjectService,

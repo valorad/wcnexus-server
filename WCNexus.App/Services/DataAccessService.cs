@@ -28,7 +28,7 @@ namespace WCNexus.App.Services
         private string BuildConditions(string indexFieldValue)
         {
 
-            var condition = "";
+            string condition;
             if (indexFieldName == "_id")
             {
                 condition = Builders<T>.Filter.Eq("_id", ObjectId.Parse(indexFieldValue)).RenderToBsonDocument().ToString();
@@ -40,7 +40,7 @@ namespace WCNexus.App.Services
             return condition;
         }
 
-        private void AddFilterToPipeline(IList<BsonDocument> pipelineStages, string conditionLiteral)
+        private static void AddFilterToPipeline(IList<BsonDocument> pipelineStages, string conditionLiteral)
         {
             pipelineStages.Add(BsonDocument.Parse(JsonUtil.CreateCompactLiteral($@"{{
                 ""$match"": {conditionLiteral}

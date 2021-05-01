@@ -70,10 +70,9 @@ namespace WCNexus.App.Controllers
         [HttpGet]
         public async Task<IActionResult> GetList([FromQuery] NexusGetListQuery query)
         {
-
-            FilterDefinition<Nexus> condition = null;
             IDBViewOption options = null;
 
+            FilterDefinition<Nexus> condition;
             if (query.Condition is null)
             {
                 condition = "{}";
@@ -253,7 +252,7 @@ namespace WCNexus.App.Controllers
                 );
             }
 
-            if (request.Condition.RootElement.EnumerateObject().Count() <= 0)
+            if (!request.Condition.RootElement.EnumerateObject().Any())
             {
                 return BadRequest(new CUDMessage()
                 {
@@ -264,7 +263,7 @@ namespace WCNexus.App.Controllers
                 );
             }
 
-            if (request.Token.RootElement.EnumerateObject().Count() <= 0)
+            if (!request.Token.RootElement.EnumerateObject().Any())
             {
                 return BadRequest(new CUDMessage()
                 {
@@ -340,7 +339,7 @@ namespace WCNexus.App.Controllers
                 }
                 );
             }
-            if (request.Condition.RootElement.EnumerateObject().Count() <= 0)
+            if (!request.Condition.RootElement.EnumerateObject().Any())
             {
                 return BadRequest(new CUDMessage()
                 {

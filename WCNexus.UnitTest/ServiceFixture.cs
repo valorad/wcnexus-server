@@ -7,39 +7,40 @@ using WCNexus.App.Models;
 
 namespace WCNexus.UnitTest
 {
-  public class ServiceFixture
-  {
-    public ServiceProvider ServiceProvider { get; }
-    
-    public ServiceFixture()
+    public class ServiceFixture
     {
-      var config = new ConfigurationBuilder()
-          .AddYamlFile("secrets.yaml")
-          .AddEnvironmentVariables()
-          .Build();
+        public ServiceProvider ServiceProvider { get; }
 
-      var services = new ServiceCollection();
+        public ServiceFixture()
+        {
+            var config = new ConfigurationBuilder()
+                .AddYamlFile("secrets.yaml")
+                .AddEnvironmentVariables()
+                .Build();
 
-      // add secrets
-      services.Configure<DBConfig>(
-        config.GetSection("mongo")
-      );
+            var services = new ServiceCollection();
 
-      services.AddSingleton<DBConfig>(sp =>
-        sp.GetRequiredService<IOptions<DBConfig>>().Value
-      );
+            // add secrets
+            services.Configure<DBConfig>(
+              config.GetSection("mongo")
+            );
 
-      // config db
-      services.AddTransient<IDBContext, DBContext>();
-      services.AddTransient<IDBCollection, DBCollection>();
+            services.AddSingleton<DBConfig>(sp =>
+              sp.GetRequiredService<IOptions<DBConfig>>().Value
+            );
 
-      // add services
-      services.AddSingleton<INexusService, NexusService>();
-      services.AddSingleton<IStoredProjectService, StoredProjectService>();
-      services.AddSingleton<IProjectService, ProjectService>();
+            // config db
+            services.AddTransient<IDBContext, DBContext>();
+            services.AddTransient<IDBCollection, DBCollection>();
 
-      ServiceProvider = services.BuildServiceProvider();
+            // add services
+            services.AddSingleton<INexusService, NexusService>();
+            services.AddSingleton<IStoredProjectService, StoredProjectService>();
+            services.AddSingleton<IProjectService, ProjectService>();
+            services.AddSingleton<IPhotoService, PhotoService>();
+
+            ServiceProvider = services.BuildServiceProvider();
+        }
+
     }
-
-  }
 }
