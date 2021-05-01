@@ -14,7 +14,7 @@ namespace WCNexus.App.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class NexusController: ControllerBase
+    public class NexusController : ControllerBase
     {
         private readonly ILogger<NexusController> logger;
         private readonly INexusService nexusService;
@@ -29,11 +29,11 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpGet("dbname/{dbname}")]
-        public async Task<IActionResult> GetSingle(string dbname, [FromQuery] GetSingleQuery query)
+        public async Task<IActionResult> GetSingle(string dbname, [FromQuery] NexusGetSingleQuery query)
         {
             IDBViewOption options = null;
 
-            if (query.Options is {})
+            if (query.Options is { })
             {
                 // try deserializing DB View Options
                 try
@@ -49,17 +49,17 @@ namespace WCNexus.App.Controllers
                 catch (Exception)
                 {
                     return BadRequest(new CommonMessage()
-                        {
-                            OK = false,
-                            Message = $@"""options"" query parameter is invalid."
-                        }
+                    {
+                        OK = false,
+                        Message = $@"""options"" query parameter is invalid."
+                    }
                     );
                 }
             }
 
             Nexus nexus = await nexusService.Get(dbname, options);
 
-            if (nexus is {})
+            if (nexus is { })
             {
                 return Ok(nexus);
             }
@@ -68,7 +68,7 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetList([FromQuery] GetListQuery query)
+        public async Task<IActionResult> GetList([FromQuery] NexusGetListQuery query)
         {
 
             FilterDefinition<Nexus> condition = null;
@@ -88,15 +88,15 @@ namespace WCNexus.App.Controllers
                 catch (Exception)
                 {
                     return BadRequest(new CommonMessage()
-                        {
-                            OK = false,
-                            Message = $@"""condition"" query parameter is invalid."
-                        }
+                    {
+                        OK = false,
+                        Message = $@"""condition"" query parameter is invalid."
+                    }
                     );
                 }
             }
 
-            if (query.Options is {})
+            if (query.Options is { })
             {
                 // try deserializing DB View Options
                 try
@@ -112,10 +112,10 @@ namespace WCNexus.App.Controllers
                 catch (Exception)
                 {
                     return BadRequest(new CommonMessage()
-                        {
-                            OK = false,
-                            Message = $@"""options"" query parameter is invalid."
-                        }
+                    {
+                        OK = false,
+                        Message = $@"""options"" query parameter is invalid."
+                    }
                     );
                 }
             }
@@ -127,17 +127,17 @@ namespace WCNexus.App.Controllers
 
         [HttpPost]
         [Route("[action]")]
-        public async Task<IActionResult> AddSingle([FromBody] AddSingleRequest request)
+        public async Task<IActionResult> AddSingle([FromBody] NexusAddSingleRequest request)
         {
             // validation
             if (request.NewNexus is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""newNexus"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""newNexus"" field cannot be empty."
+                }
                 );
             }
 
@@ -157,17 +157,17 @@ namespace WCNexus.App.Controllers
 
         [HttpPost]
         [Route("[action]")]
-        public async Task<IActionResult> AddList([FromBody] AddListRequest request)
+        public async Task<IActionResult> AddList([FromBody] NexusAddListRequest request)
         {
             // validation
             if (request.NewNexuses is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""newNexuses"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""newNexuses"" field cannot be empty."
+                }
                 );
             }
 
@@ -186,18 +186,18 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpPatch("dbname/{dbname}")]
-        public async Task<IActionResult> UpdateSingle(string dbname, [FromBody] UpdateSingleRequest request)
+        public async Task<IActionResult> UpdateSingle(string dbname, [FromBody] NexusUpdateSingleRequest request)
         {
 
             // validation
             if (request.Token is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""token"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""token"" field cannot be empty."
+                }
                 );
             }
 
@@ -228,50 +228,50 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpPatch]
-        public async Task<IActionResult> UpdateList([FromBody] UpdateListRequest request)
+        public async Task<IActionResult> UpdateList([FromBody] NexusUpdateListRequest request)
         {
             // validation
             if (request.Condition is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""condition"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""condition"" field cannot be empty."
+                }
                 );
             }
 
             if (request.Token is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""token"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""token"" field cannot be empty."
+                }
                 );
             }
 
             if (request.Condition.RootElement.EnumerateObject().Count() <= 0)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"Unconditional updating is not allowed."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"Unconditional updating is not allowed."
+                }
                 );
             }
 
             if (request.Token.RootElement.EnumerateObject().Count() <= 0)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $"The update token is missing"
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $"The update token is missing"
+                }
                 );
             }
 
@@ -327,27 +327,27 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpDelete]
-        public async Task<IActionResult> DeleteList([FromBody] DeleteListRequest request)
+        public async Task<IActionResult> DeleteList([FromBody] NexusDeleteListRequest request)
         {
             // validation
             if (request.Condition is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""condition"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""condition"" field cannot be empty."
+                }
                 );
             }
             if (request.Condition.RootElement.EnumerateObject().Count() <= 0)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"Unconditional deleting is not allowed."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"Unconditional deleting is not allowed."
+                }
                 );
             }
 
@@ -375,43 +375,41 @@ namespace WCNexus.App.Controllers
             return new JsonResult(message);
         }
 
-        #region private models
-        
-        public class GetSingleQuery
-        {
-            public string Options { get; set; }
-        }
-
-        public class GetListQuery 
-        {
-            public string Condition { get; set; }
-            public string Options { get; set; }
-        }
-        public class AddSingleRequest 
-        {
-            public InputNexus NewNexus { get; set; }
-        }
-        public class AddListRequest 
-        {
-            public IList<InputNexus> NewNexuses { get; set; }
-        }
-        public class UpdateSingleRequest 
-        {
-            public JsonDocument Token { get; set; }
-        }
-        public class UpdateListRequest 
-        {
-            public JsonDocument Condition { get; set; }
-            public JsonDocument Token { get; set; }
-        }
-
-        public class DeleteListRequest 
-        {
-            public JsonDocument Condition { get; set; }
-        }
-
-        #endregion
-
     }
+
+
+    public class NexusGetSingleQuery
+    {
+        public string Options { get; set; }
+    }
+
+    public class NexusGetListQuery
+    {
+        public string Condition { get; set; }
+        public string Options { get; set; }
+    }
+    public class NexusAddSingleRequest
+    {
+        public InputNexus NewNexus { get; set; }
+    }
+    public class NexusAddListRequest
+    {
+        public IList<InputNexus> NewNexuses { get; set; }
+    }
+    public class NexusUpdateSingleRequest
+    {
+        public JsonDocument Token { get; set; }
+    }
+    public class NexusUpdateListRequest
+    {
+        public JsonDocument Condition { get; set; }
+        public JsonDocument Token { get; set; }
+    }
+
+    public class NexusDeleteListRequest
+    {
+        public JsonDocument Condition { get; set; }
+    }
+
 
 }

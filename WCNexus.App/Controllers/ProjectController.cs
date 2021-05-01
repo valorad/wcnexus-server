@@ -14,7 +14,7 @@ namespace WCNexus.App.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ProjectController: ControllerBase
+    public class ProjectController : ControllerBase
     {
         private readonly ILogger<ProjectController> logger;
         private readonly IProjectService projectService;
@@ -29,11 +29,11 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpGet("dbname/{dbname}")]
-        public async Task<IActionResult> GetSingle(string dbname, [FromQuery] GetSingleQuery query)
+        public async Task<IActionResult> GetSingle(string dbname, [FromQuery] ProjectGetSingleQuery query)
         {
             IDBViewOption options = null;
 
-            if (query.Options is {})
+            if (query.Options is { })
             {
                 // try deserializing DB View Options
                 try
@@ -49,17 +49,17 @@ namespace WCNexus.App.Controllers
                 catch (Exception)
                 {
                     return BadRequest(new CommonMessage()
-                        {
-                            OK = false,
-                            Message = $@"""options"" query parameter is invalid."
-                        }
+                    {
+                        OK = false,
+                        Message = $@"""options"" query parameter is invalid."
+                    }
                     );
                 }
             }
 
             JointProject project = await projectService.Get(dbname, options);
 
-            if (project is {})
+            if (project is { })
             {
                 return Ok(project);
             }
@@ -68,7 +68,7 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetList([FromQuery] GetListQuery query)
+        public async Task<IActionResult> GetList([FromQuery] ProjectGetListQuery query)
         {
 
             FilterDefinition<JointProject> condition = null;
@@ -88,15 +88,15 @@ namespace WCNexus.App.Controllers
                 catch (Exception)
                 {
                     return BadRequest(new CommonMessage()
-                        {
-                            OK = false,
-                            Message = $@"""condition"" query parameter is invalid."
-                        }
+                    {
+                        OK = false,
+                        Message = $@"""condition"" query parameter is invalid."
+                    }
                     );
                 }
             }
 
-            if (query.Options is {})
+            if (query.Options is { })
             {
                 // try deserializing DB View Options
                 try
@@ -112,10 +112,10 @@ namespace WCNexus.App.Controllers
                 catch (Exception)
                 {
                     return BadRequest(new CommonMessage()
-                        {
-                            OK = false,
-                            Message = $@"""options"" query parameter is invalid."
-                        }
+                    {
+                        OK = false,
+                        Message = $@"""options"" query parameter is invalid."
+                    }
                     );
                 }
             }
@@ -127,17 +127,17 @@ namespace WCNexus.App.Controllers
 
         [HttpPost]
         [Route("[action]")]
-        public async Task<IActionResult> AddSingle([FromBody] AddSingleRequest request)
+        public async Task<IActionResult> AddSingle([FromBody] ProjectAddSingleRequest request)
         {
             // validation
             if (request.NewProject is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""newProject"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""newProject"" field cannot be empty."
+                }
                 );
             }
 
@@ -188,17 +188,17 @@ namespace WCNexus.App.Controllers
 
         [HttpPost]
         [Route("[action]")]
-        public async Task<IActionResult> AddList([FromBody] AddListRequest request)
+        public async Task<IActionResult> AddList([FromBody] ProjectAddListRequest request)
         {
             // validation
             if (request.NewProjects is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""newProjects"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""newProjects"" field cannot be empty."
+                }
                 );
             }
 
@@ -239,18 +239,18 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpPatch("dbname/{dbname}")]
-        public async Task<IActionResult> UpdateSingle(string dbname, [FromBody] UpdateSingleRequest request)
+        public async Task<IActionResult> UpdateSingle(string dbname, [FromBody] ProjectUpdateSingleRequest request)
         {
 
             // validation
             if (request.Token is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""token"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""token"" field cannot be empty."
+                }
                 );
             }
 
@@ -303,50 +303,50 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpPatch]
-        public async Task<IActionResult> UpdateList([FromBody] UpdateListRequest request)
+        public async Task<IActionResult> UpdateList([FromBody] ProjectUpdateListRequest request)
         {
             // validation
             if (request.Condition is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""condition"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""condition"" field cannot be empty."
+                }
                 );
             }
 
             if (request.Token is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""token"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""token"" field cannot be empty."
+                }
                 );
             }
 
             if (request.Condition.RootElement.EnumerateObject().Count() <= 0)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"Unconditional updating is not allowed."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"Unconditional updating is not allowed."
+                }
                 );
             }
 
             if (request.Token.RootElement.EnumerateObject().Count() <= 0)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $"The update token is missing"
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $"The update token is missing"
+                }
                 );
             }
 
@@ -450,27 +450,27 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpDelete]
-        public async Task<IActionResult> DeleteList([FromBody] DeleteListRequest request)
+        public async Task<IActionResult> DeleteList([FromBody] ProjectDeleteListRequest request)
         {
             // validation
             if (request.Condition is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""condition"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""condition"" field cannot be empty."
+                }
                 );
             }
             if (request.Condition.RootElement.EnumerateObject().Count() <= 0)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"Unconditional deleting is not allowed."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"Unconditional deleting is not allowed."
+                }
                 );
             }
 
@@ -523,43 +523,39 @@ namespace WCNexus.App.Controllers
 
         }
 
-        #region private models
-        
-        public class GetSingleQuery
-        {
-            public string Options { get; set; }
-        }
+    }
 
-        public class GetListQuery 
-        {
-            public string Condition { get; set; }
-            public string Options { get; set; }
-        }
-        public class AddSingleRequest 
-        {
-            public InputProject NewProject { get; set; }
-        }
-        public class AddListRequest 
-        {
-            public IList<InputProject> NewProjects { get; set; }
-        }
-        public class UpdateSingleRequest 
-        {
-            public JsonDocument Token { get; set; }
-        }
-        public class UpdateListRequest 
-        {
-            public JsonDocument Condition { get; set; }
-            public JsonDocument Token { get; set; }
-        }
+    public class ProjectGetSingleQuery
+    {
+        public string Options { get; set; }
+    }
 
-        public class DeleteListRequest 
-        {
-            public JsonDocument Condition { get; set; }
-        }
+    public class ProjectGetListQuery
+    {
+        public string Condition { get; set; }
+        public string Options { get; set; }
+    }
+    public class ProjectAddSingleRequest
+    {
+        public InputProject NewProject { get; set; }
+    }
+    public class ProjectAddListRequest
+    {
+        public IList<InputProject> NewProjects { get; set; }
+    }
+    public class ProjectUpdateSingleRequest
+    {
+        public JsonDocument Token { get; set; }
+    }
+    public class ProjectUpdateListRequest
+    {
+        public JsonDocument Condition { get; set; }
+        public JsonDocument Token { get; set; }
+    }
 
-        #endregion
-
+    public class ProjectDeleteListRequest
+    {
+        public JsonDocument Condition { get; set; }
     }
 
 }

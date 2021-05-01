@@ -14,7 +14,7 @@ namespace WCNexus.App.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class PhotoController: ControllerBase
+    public class PhotoController : ControllerBase
     {
         private readonly ILogger<PhotoController> logger;
         private readonly IPhotoService photoService;
@@ -32,11 +32,11 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpGet("dbname/{dbname}")]
-        public async Task<IActionResult> GetSingle(string dbname, [FromQuery] GetSingleQuery query)
+        public async Task<IActionResult> GetSingle(string dbname, [FromQuery] PhotoGetSingleQuery query)
         {
             IDBViewOption options = null;
 
-            if (query.Options is {})
+            if (query.Options is { })
             {
                 // try deserializing DB View Options
                 try
@@ -52,17 +52,17 @@ namespace WCNexus.App.Controllers
                 catch (Exception)
                 {
                     return BadRequest(new CommonMessage()
-                        {
-                            OK = false,
-                            Message = $@"""options"" query parameter is invalid."
-                        }
+                    {
+                        OK = false,
+                        Message = $@"""options"" query parameter is invalid."
+                    }
                     );
                 }
             }
 
             Photo photo = await photoService.Get(dbname, options);
 
-            if (photo is {})
+            if (photo is { })
             {
                 return Ok(photo);
             }
@@ -71,7 +71,7 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetList([FromQuery] GetListQuery query)
+        public async Task<IActionResult> GetList([FromQuery] PhotoGetListQuery query)
         {
 
             FilterDefinition<Photo> condition = null;
@@ -91,15 +91,15 @@ namespace WCNexus.App.Controllers
                 catch (Exception)
                 {
                     return BadRequest(new CommonMessage()
-                        {
-                            OK = false,
-                            Message = $@"""condition"" query parameter is invalid."
-                        }
+                    {
+                        OK = false,
+                        Message = $@"""condition"" query parameter is invalid."
+                    }
                     );
                 }
             }
 
-            if (query.Options is {})
+            if (query.Options is { })
             {
                 // try deserializing DB View Options
                 try
@@ -115,10 +115,10 @@ namespace WCNexus.App.Controllers
                 catch (Exception)
                 {
                     return BadRequest(new CommonMessage()
-                        {
-                            OK = false,
-                            Message = $@"""options"" query parameter is invalid."
-                        }
+                    {
+                        OK = false,
+                        Message = $@"""options"" query parameter is invalid."
+                    }
                     );
                 }
             }
@@ -130,17 +130,17 @@ namespace WCNexus.App.Controllers
 
         [HttpPost]
         [Route("[action]")]
-        public async Task<IActionResult> AddSingle([FromBody] AddSingleRequest request)
+        public async Task<IActionResult> AddSingle([FromBody] PhotoAddSingleRequest request)
         {
             // validation
             if (request.NewPhoto is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""newPhoto"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""newPhoto"" field cannot be empty."
+                }
                 );
             }
 
@@ -148,12 +148,14 @@ namespace WCNexus.App.Controllers
             CUDMessage message = await photoService.Add(request.NewPhoto);
             if (message.OK)
             {
-                if (request.ProjectDBName is {})
+                if (request.ProjectDBName is { })
                 {
                     await projectService.AddImage(request.NewPhoto.DBName, request.ProjectDBName);
                     message.Message = $"Successfuly added Photo { request.NewPhoto.Name ?? request.NewPhoto.DBName } to { request.ProjectDBName }.";
 
-                } else {
+                }
+                else
+                {
                     message.Message = $"Successfuly added Photo { request.NewPhoto.Name ?? request.NewPhoto.DBName }.";
                 }
                 return Ok(message);
@@ -167,17 +169,17 @@ namespace WCNexus.App.Controllers
 
         [HttpPost]
         [Route("[action]")]
-        public async Task<IActionResult> AddList([FromBody] AddListRequest request)
+        public async Task<IActionResult> AddList([FromBody] PhotoAddListRequest request)
         {
             // validation
             if (request.NewPhotos is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""newPhotos"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""newPhotos"" field cannot be empty."
+                }
                 );
             }
 
@@ -185,7 +187,7 @@ namespace WCNexus.App.Controllers
             CUDMessage message = await photoService.Add(request.NewPhotos);
             if (message.OK)
             {
-                if (request.ProjectDBName is {})
+                if (request.ProjectDBName is { })
                 {
                     List<string> photoDBNames = (
                         from photo in request.NewPhotos
@@ -195,7 +197,9 @@ namespace WCNexus.App.Controllers
                     await projectService.AddImage(photoDBNames, request.ProjectDBName);
                     message.Message = $"Successfuly added {message.NumAffected} Photos to {request.ProjectDBName}.";
 
-                } else {
+                }
+                else
+                {
                     message.Message = $"Successfuly added {message.NumAffected} Photos.";
                 }
 
@@ -209,18 +213,18 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpPatch("dbname/{dbname}")]
-        public async Task<IActionResult> UpdateSingle(string dbname, [FromBody] UpdateSingleRequest request)
+        public async Task<IActionResult> UpdateSingle(string dbname, [FromBody] PhotoUpdateSingleRequest request)
         {
 
             // validation
             if (request.Token is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""token"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""token"" field cannot be empty."
+                }
                 );
             }
 
@@ -251,50 +255,50 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpPatch]
-        public async Task<IActionResult> UpdateList([FromBody] UpdateListRequest request)
+        public async Task<IActionResult> UpdateList([FromBody] PhotoUpdateListRequest request)
         {
             // validation
             if (request.Condition is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""condition"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""condition"" field cannot be empty."
+                }
                 );
             }
 
             if (request.Token is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""token"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""token"" field cannot be empty."
+                }
                 );
             }
 
             if (request.Condition.RootElement.EnumerateObject().Count() <= 0)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"Unconditional updating is not allowed."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"Unconditional updating is not allowed."
+                }
                 );
             }
 
             if (request.Token.RootElement.EnumerateObject().Count() <= 0)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $"The update token is missing"
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $"The update token is missing"
+                }
                 );
             }
 
@@ -350,27 +354,27 @@ namespace WCNexus.App.Controllers
         }
 
         [HttpDelete]
-        public async Task<IActionResult> DeleteList([FromBody] DeleteListRequest request)
+        public async Task<IActionResult> DeleteList([FromBody] PhotoDeleteListRequest request)
         {
             // validation
             if (request.Condition is null)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"""condition"" field cannot be empty."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"""condition"" field cannot be empty."
+                }
                 );
             }
             if (request.Condition.RootElement.EnumerateObject().Count() <= 0)
             {
                 return BadRequest(new CUDMessage()
-                    {
-                        OK = false,
-                        NumAffected = 0,
-                        Message = $@"Unconditional deleting is not allowed."
-                    }
+                {
+                    OK = false,
+                    NumAffected = 0,
+                    Message = $@"Unconditional deleting is not allowed."
+                }
                 );
             }
 
@@ -398,45 +402,41 @@ namespace WCNexus.App.Controllers
             return new JsonResult(message);
         }
 
-        #region private models
-        
-        public class GetSingleQuery
-        {
-            public string Options { get; set; }
-        }
+    }
 
-        public class GetListQuery 
-        {
-            public string Condition { get; set; }
-            public string Options { get; set; }
-        }
-        public class AddSingleRequest 
-        {
-            public InputPhoto NewPhoto { get; set; }
-            public string ProjectDBName { get; set; }
-        }
-        public class AddListRequest 
-        {
-            public IList<InputPhoto> NewPhotos { get; set; }
-            public string ProjectDBName { get; set; }
-        }
-        public class UpdateSingleRequest 
-        {
-            public JsonDocument Token { get; set; }
-        }
-        public class UpdateListRequest 
-        {
-            public JsonDocument Condition { get; set; }
-            public JsonDocument Token { get; set; }
-        }
+    public class PhotoGetSingleQuery
+    {
+        public string Options { get; set; }
+    }
 
-        public class DeleteListRequest 
-        {
-            public JsonDocument Condition { get; set; }
-        }
+    public class PhotoGetListQuery
+    {
+        public string Condition { get; set; }
+        public string Options { get; set; }
+    }
+    public class PhotoAddSingleRequest
+    {
+        public InputPhoto NewPhoto { get; set; }
+        public string ProjectDBName { get; set; }
+    }
+    public class PhotoAddListRequest
+    {
+        public IList<InputPhoto> NewPhotos { get; set; }
+        public string ProjectDBName { get; set; }
+    }
+    public class PhotoUpdateSingleRequest
+    {
+        public JsonDocument Token { get; set; }
+    }
+    public class PhotoUpdateListRequest
+    {
+        public JsonDocument Condition { get; set; }
+        public JsonDocument Token { get; set; }
+    }
 
-        #endregion
-
+    public class PhotoDeleteListRequest
+    {
+        public JsonDocument Condition { get; set; }
     }
 
 }
