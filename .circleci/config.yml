@@ -1,0 +1,21 @@
+---
+
+version: 2.1
+orbs:
+  docker: circleci/docker@1.6.0
+
+workflows:
+    mainPipe:
+      jobs:
+        - docker/publish:
+            filters:
+              branches:
+                only: main
+            context: docker-ghcr
+            cache_from: ghcr.io/valorad/wcnexus-server
+            docker-username: GITHUB_LOGIN
+            docker-password: GITHUB_TOKEN
+            registry: ghcr.io
+            dockerfile: dockerfile
+            image: valorad/wcnexus-server
+            update-description: false
