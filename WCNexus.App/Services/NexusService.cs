@@ -28,6 +28,9 @@ namespace WCNexus.App.Services
                 URL = newNexus.URL,
                 Logo = newNexus.Logo,
                 Type = newNexus.Type,
+                Cover = newNexus.Cover,
+                Avatar = newNexus.Avatar,
+                Photos = newNexus.Photos ?? new List<string>(),
             });
         }
 
@@ -44,10 +47,33 @@ namespace WCNexus.App.Services
                     URL = nexus.URL,
                     Logo = nexus.Logo,
                     Type = nexus.Type,
+                    Cover = nexus.Cover,
+                    Avatar = nexus.Avatar,
+                    Photos = nexus.Photos ?? new List<string>(),
                 }
             );
 
         }
-        
+
+        public async Task<CUDMessage> AddImage(string imageDBName, string projectDBName)
+        {
+            return await AddItemToList("photos", imageDBName, projectDBName);
+        }
+
+        public async Task<CUDMessage> AddImage(IEnumerable<string> imageDBNames, string projectDBName)
+        {
+            return await AddItemToList("photos", imageDBNames, projectDBName);
+        }
+
+        public async Task<CUDMessage> RemoveImage(string imageDBName, string projectDBName)
+        {
+            return await RemoveItemFromList("photos", imageDBName, projectDBName);
+        }
+
+        public async Task<CUDMessage> RemoveImage(IEnumerable<string> imageDBNames, string projectDBName)
+        {
+            return await RemoveItemFromList("photos", imageDBNames, projectDBName);
+        }
+
     }
 }

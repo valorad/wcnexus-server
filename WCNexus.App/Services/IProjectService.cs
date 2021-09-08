@@ -20,9 +20,5 @@ namespace WCNexus.App.Services
         Task<CUDMessage> AddTechnology(IEnumerable<string> techDBNames, string projectDBName);
         Task<CUDMessage> RemoveTechnology(string techDBName, string projectDBName);
         Task<CUDMessage> RemoveTechnology(IEnumerable<string> techDBNames, string projectDBName);
-        Task<CUDMessage> AddImage(string imageDBName, string projectDBName);
-        Task<CUDMessage> AddImage(IEnumerable<string> imageDBNames, string projectDBName);
-        Task<CUDMessage> RemoveImage(string imageDBName, string projectDBName);
-        Task<CUDMessage> RemoveImage(IEnumerable<string> imageDBNames, string projectDBName);
     }
 }

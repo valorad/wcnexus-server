@@ -70,8 +70,7 @@ namespace WCNexus.App.Services
             var newStoredProjectInstance = new StoredProject()
             {
                 DBName = newDBName,
-                Techs = newProject.Techs,
-                Images = newProject.Images,
+                Techs = newProject.Techs ?? new List<string>(),
             };
 
             CUDMessage nexusAddMessage = await nexusService.Add(newNexus);
@@ -115,7 +114,6 @@ namespace WCNexus.App.Services
                 {
                     DBName = project.DBName,
                     Techs = project.Techs,
-                    Images = project.Images,
                 }
             );
 
@@ -304,26 +302,6 @@ namespace WCNexus.App.Services
         public async Task<CUDMessage> RemoveTechnology(IEnumerable<string> techDBNames, string projectDBName)
         {
             return await storedProjectService.RemoveItemFromList("techs", techDBNames, projectDBName);
-        }
-
-        public async Task<CUDMessage> AddImage(string imageDBName, string projectDBName)
-        {
-            return await storedProjectService.AddItemToList("images", imageDBName, projectDBName);
-        }
-
-        public async Task<CUDMessage> AddImage(IEnumerable<string> imageDBNames, string projectDBName)
-        {
-            return await storedProjectService.AddItemToList("images", imageDBNames, projectDBName);
-        }
-
-        public async Task<CUDMessage> RemoveImage(string imageDBName, string projectDBName)
-        {
-            return await storedProjectService.RemoveItemFromList("images", imageDBName, projectDBName);
-        }
-
-        public async Task<CUDMessage> RemoveImage(IEnumerable<string> imageDBNames, string projectDBName)
-        {
-            return await storedProjectService.RemoveItemFromList("images", imageDBNames, projectDBName);
         }
 
         // get technology nexus

@@ -6,7 +6,6 @@ namespace WCNexus.App.Models
     {
         string DBName { get; set; }
         IEnumerable<string> Techs { get; set; }
-        IEnumerable<string> Images { get; set; }
     }
 
 }

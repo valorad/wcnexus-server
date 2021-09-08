@@ -14,8 +14,5 @@ namespace WCNexus.App.Models {
 
         [BsonElement("techs")]
         public IEnumerable<string> Techs { get; set; }
-
-        [BsonElement("images")]
-        public IEnumerable<string> Images { get; set; }
     }
 }

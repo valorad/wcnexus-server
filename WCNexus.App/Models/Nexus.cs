@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.Collections.Generic;
 
 namespace WCNexus.App.Models {
     public class Nexus: INexus
@@ -22,7 +23,16 @@ namespace WCNexus.App.Models {
 
         [BsonElement("logo")]
         public string Logo { get; set; }
-        
+
+        [BsonElement("cover")]
+        public string Cover { get; set; }
+
+        [BsonElement("avatar")]
+        public string Avatar { get; set; }
+
+        [BsonElement("photos")]
+        public IEnumerable<string> Photos { get; set; }
+
         [BsonElement("type")]
         public string Type { get; set; }
 

@@ -8,5 +8,9 @@ namespace WCNexus.App.Services
     {
         Task<CUDMessage> Add(InputNexus newNexus);
         Task<CUDMessage> Add(IEnumerable<InputNexus> newNexuses);
+        Task<CUDMessage> AddImage(string imageDBName, string projectDBName);
+        Task<CUDMessage> AddImage(IEnumerable<string> imageDBNames, string projectDBName);
+        Task<CUDMessage> RemoveImage(string imageDBName, string projectDBName);
+        Task<CUDMessage> RemoveImage(IEnumerable<string> imageDBNames, string projectDBName);
     }
 }

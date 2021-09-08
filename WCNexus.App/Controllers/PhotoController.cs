@@ -18,17 +18,17 @@ namespace WCNexus.App.Controllers
     {
         private readonly ILogger<PhotoController> logger;
         private readonly IPhotoService photoService;
-        private readonly IProjectService projectService;
+        private readonly INexusService nexusService;
 
         public PhotoController(
             ILogger<PhotoController> logger,
             IPhotoService photoService,
-            IProjectService projectService
+            INexusService nexusService
         )
         {
             this.logger = logger;
             this.photoService = photoService;
-            this.projectService = projectService;
+            this.nexusService = nexusService;
         }
 
         [HttpGet("dbname/{dbname}")]
@@ -147,10 +147,10 @@ namespace WCNexus.App.Controllers
             CUDMessage message = await photoService.Add(request.NewPhoto);
             if (message.OK)
             {
-                if (request.ProjectDBName is { })
+                if (request.NexusDBName is { })
                 {
-                    await projectService.AddImage(request.NewPhoto.DBName, request.ProjectDBName);
-                    message.Message = $"Successfuly added Photo { request.NewPhoto.Name ?? request.NewPhoto.DBName } to { request.ProjectDBName }.";
+                    await nexusService.AddImage(request.NewPhoto.DBName, request.NexusDBName);
+                    message.Message = $"Successfuly added Photo { request.NewPhoto.Name ?? request.NewPhoto.DBName } to { request.NexusDBName }.";
 
                 }
                 else
@@ -186,15 +186,15 @@ namespace WCNexus.App.Controllers
             CUDMessage message = await photoService.Add(request.NewPhotos);
             if (message.OK)
             {
-                if (request.ProjectDBName is { })
+                if (request.NexusDBName is { })
                 {
                     List<string> photoDBNames = (
                         from photo in request.NewPhotos
                         select photo.DBName
                     ).ToList();
 
-                    await projectService.AddImage(photoDBNames, request.ProjectDBName);
-                    message.Message = $"Successfuly added {message.NumAffected} Photos to {request.ProjectDBName}.";
+                    await nexusService.AddImage(photoDBNames, request.NexusDBName);
+                    message.Message = $"Successfuly added {message.NumAffected} Photos to {request.NexusDBName}.";
 
                 }
                 else
@@ -416,12 +416,12 @@ namespace WCNexus.App.Controllers
     public class PhotoAddSingleRequest
     {
         public InputPhoto NewPhoto { get; set; }
-        public string ProjectDBName { get; set; }
+        public string NexusDBName { get; set; }
     }
     public class PhotoAddListRequest
     {
         public IList<InputPhoto> NewPhotos { get; set; }
-        public string ProjectDBName { get; set; }
+        public string NexusDBName { get; set; }
     }
     public class PhotoUpdateSingleRequest
     {

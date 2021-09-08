@@ -41,14 +41,11 @@ namespace WCNexus.UnitTest
 
         [Theory(DisplayName = "Project singular test")]
         [ClassData(typeof(DataSingleProject))]
-        public async void SingleCRUDTest(InputProject newProject, IList<InputNexus> technologies, IList<InputPhoto> photos)
+        public async void SingleCRUDTest(InputProject newProject, IList<InputNexus> technologies)
         {
 
             // Add existing technologies
             await nexusService.Add(technologies);
-
-            // Add existing photos
-            await photoService.Add(photos);
 
             // Add single
             List<CUDMessage> addMessages = (await projectService.Add(newProject)).ToList();
@@ -196,57 +193,12 @@ namespace WCNexus.UnitTest
 
         }
         
-        [Theory(DisplayName = "Project add images test")]
-        [ClassData(typeof(DataSingleProject))]
-        public async void ImagesTest(InputProject newProject, IList<InputNexus> technologies, IList<InputPhoto> photos)
-        {
-            // Add existing technologies
-            await nexusService.Add(technologies);
-
-            // Add single
-            await projectService.Add(newProject);
-
-            // Extract image dbnames
-            List<string> imageDBNames = (
-                from photo in photos
-                select photo.DBName
-            ).ToList();
-
-            // Add 1 image
-            CUDMessage message = await projectService.AddImage(imageDBNames[0], newProject.DBName);
-            Assert.True(message.OK);
-            Assert.Equal(1, message.NumAffected);
-            JointProject projectInDB = await projectService.Get(newProject.DBName);
-            Assert.Single(projectInDB.Images);
-
-            // Remove 1 image
-            message = await projectService.RemoveImage(imageDBNames[0], newProject.DBName);
-            Assert.True(message.OK);
-            Assert.Equal(1, message.NumAffected);
-            projectInDB = await projectService.Get(newProject.DBName);
-            Assert.Empty(projectInDB.Images);
-
-            // Add many images
-            message = await projectService.AddImage(imageDBNames, newProject.DBName);
-            Assert.True(message.OK);
-            Assert.Equal(1, message.NumAffected); // <- should still be 1 because only 1 project is updated
-            projectInDB = await projectService.Get(newProject.DBName);
-            Assert.Equal(photos.Count, projectInDB.Images.Count());
-
-            // Remove many images
-            message = await projectService.RemoveImage(imageDBNames, newProject.DBName);
-            Assert.True(message.OK);
-            Assert.Equal(1, message.NumAffected); // <- should still be 1 because only 1 project is updated
-            projectInDB = await projectService.Get(newProject.DBName);
-            Assert.Empty(projectInDB.Images);
-
-        }
 
     }
 
     #region Test Data Section
 
-    public class DataSingleProject : TheoryData<InputProject, IList<InputNexus>, IList<InputPhoto>>
+    public class DataSingleProject : TheoryData<InputProject, IList<InputNexus>>
     {
         public DataSingleProject()
         {
@@ -264,10 +216,6 @@ namespace WCNexus.UnitTest
                     "tech-csharp",
                     "tech-angular",
                 },
-                Images = new List<string>()
-                {
-                    "photo-timely-romance"
-                }
             };
 
             var technologies = new List<InputNexus>()
@@ -301,30 +249,7 @@ namespace WCNexus.UnitTest
                 },
             };
 
-            var photos = new List<InputPhoto>()
-            {
-                new InputPhoto()
-                {
-                    Name = "RandomPhoto",
-                    Description = "Random Photo",
-                    URL = "goodyolo.jpg",
-                },
-                new InputPhoto()
-                {
-                    Name = "RandomPhoto2",
-                    Description = "Random Photo 2",
-                    URL = "strawberry.png",
-                },
-                new InputPhoto()
-                {
-                    DBName = "photo-timely-romance",
-                    Name = "Timely Romance",
-                    Description = "Timely Romance - a named photo",
-                    URL = "timely-romance.jpg",
-                },
-            };
-
-            Add(newProject, technologies, photos);
+            Add(newProject, technologies);
 
         }
     }
@@ -411,7 +336,5 @@ namespace WCNexus.UnitTest
     }
 
     #endregion
-
-
 
 }

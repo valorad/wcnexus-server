@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace WCNexus.App.Models {
     public class InputNexus
     {
@@ -6,6 +8,9 @@ namespace WCNexus.App.Models {
         public string Description { get; set; }
         public string URL { get; set; }
         public string Logo { get; set; }
+        public string Cover { get; set; }
+        public string Avatar { get; set; }
+        public IEnumerable<string> Photos { get; set; }
         public string Type { get; set; }
     }
 }
