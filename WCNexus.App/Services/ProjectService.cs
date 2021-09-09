@@ -63,7 +63,9 @@ namespace WCNexus.App.Services
                 Name = newProject.Name,
                 Description = newProject.Description,
                 URL = newProject.URL,
-                Logo = newProject.Logo,
+                Avatar = newProject.Avatar,
+                Cover = newProject.Cover,
+                Photos = newProject.Photos ?? new List<string>(),
                 Type = "type-project",
             };
 
@@ -103,7 +105,9 @@ namespace WCNexus.App.Services
                     Name = project.Name,
                     Description = project.Description,
                     URL = project.URL,
-                    Logo = project.Logo,
+                    Avatar = project.Avatar,
+                    Cover = project.Cover,
+                    Photos = project.Photos ?? new List<string>(),
                     Type = "type-project",
                 }
             );

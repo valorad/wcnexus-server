@@ -87,8 +87,9 @@ namespace WCNexus.UnitTest
                 Name = "Central Nexus",
                 Description = "This is the central nexus",
                 URL = null,
-                Logo = null,
                 Type = "type-testdata",
+                Avatar = "testdata.jpg",
+                Cover = null,
             };
 
             var photos = new List<InputPhoto>()

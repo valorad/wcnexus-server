@@ -21,9 +21,6 @@ namespace WCNexus.App.Models {
         [BsonElement("url")]
         public string URL { get; set; }
 
-        [BsonElement("logo")]
-        public string Logo { get; set; }
-
         [BsonElement("cover")]
         public string Cover { get; set; }
 

@@ -35,13 +35,13 @@ namespace WCNexus.UnitTest
 
         [Theory(DisplayName = "Data Access singular test")]
         [ClassData(typeof(DataSingleNexus))]
-        public async void TestCRUDSingle(Nexus newNexus)
+        public async void TestCRUDSingle(InputNexus newNexus)
         {
 
             var newLogo = "central-station.png";
             var updateTokenLiteral = $@"{{
                 ""$set"": {{
-                    ""logo"": ""{newLogo}""
+                    ""avatar"": ""{newLogo}""
                 }}
             }}";
             // remove all white spaces
@@ -57,7 +57,7 @@ namespace WCNexus.UnitTest
             // update single
             CUDMessage updateMessage = await nexusService.Update(newNexus.DBName, updateToken);
             nexusInDB = await nexusService.Get(newNexus.DBName);
-            Assert.Equal(newLogo, nexusInDB.Logo);
+            Assert.Equal(newLogo, nexusInDB.Avatar);
             // delete single
             CUDMessage deleteMessage = await nexusService.Delete(newNexus.DBName);
             Assert.True(deleteMessage.OK);
@@ -68,7 +68,7 @@ namespace WCNexus.UnitTest
 
         [Theory(DisplayName = "Data Access plural test")]
         [ClassData(typeof(DataMultipleNexuses))]
-        public async void TestCRUDList(List<Nexus> newNexuses)
+        public async void TestCRUDList(List<InputNexus> newNexuses)
         {
             var newURL = "https://404.org";
 
@@ -118,53 +118,57 @@ namespace WCNexus.UnitTest
 
     #region Test Data Section
 
-    public class DataSingleNexus : TheoryData<Nexus>
+    public class DataSingleNexus : TheoryData<InputNexus>
     {
         public DataSingleNexus()
         {
 
             Add(
-                new Nexus()
+                new InputNexus()
                 {
                     DBName = "nexus-central",
                     Name = "Central Nexus",
                     Description = "This is the central nexus",
                     URL = null,
-                    Logo = null,
+                    Avatar = null,
+                    Cover = null,
                     Type = "type-testdata",
                 }
             );
         }
     }
 
-    public class DataMultipleNexuses : TheoryData<List<Nexus>>
+    public class DataMultipleNexuses : TheoryData<List<InputNexus>>
     {
         public DataMultipleNexuses()
         {
             Add(
-              new List<Nexus>() {
-                new Nexus() {
-                    DBName = "nexus-csharp",
+              new List<InputNexus>() {
+                new InputNexus() {
+                    DBName = "tech-csharp",
                     Name = "C# Language",
                     Description = "One of the language spoken by .Net",
                     URL = "http://asp.net",
-                    Logo = "C-well.jpg",
+                    Avatar = "C-well.jpg",
+                    Cover = "C-well.cover.jpg",
                     Type = "type-technology",
                 },
-                new Nexus() {
-                    DBName = "nexus-java",
+                new InputNexus() {
+                    DBName = "tech-java",
                     Name = "Java Language",
                     Description = "Language spoken by Spring eco-system",
                     URL = null,
-                    Logo = "java-island.webp",
+                    Avatar = "java-island.webp",
+                    Cover = null,
                     Type = "type-technology",
                 },
-                new Nexus() {
-                    DBName = "nexus-javascript",
+                new InputNexus() {
+                    DBName = "tech-javascript",
                     Name = "JavaScript Language",
                     Description = "Language spoken by all browsers + node eco-system",
                     URL = null,
-                    Logo = "java-scripter.gif",
+                    Avatar = "java-scripter.gif",
+                    Cover = "java-scripter.cover.png",
                     Type = "type-technology",
                 },
               }

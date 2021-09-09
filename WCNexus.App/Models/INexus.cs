@@ -8,7 +8,6 @@ namespace WCNexus.App.Models
         string Name { get; set; }
         string Description { get; set; }
         string URL { get; set; }
-        string Logo { get; set; }
         string Cover { get; set; }
         string Avatar { get; set; }
         IEnumerable<string> Photos { get; set; }

@@ -125,7 +125,7 @@ namespace WCNexus.UnitTest
             Assert.Equal(2, projectsInDB.Count);
 
             FilterDefinition<JointProject> getConditionHasLogoWithTechs = JsonUtil.CreateCompactLiteral($@"{{
-                 ""logo"":{{
+                 ""avatar"":{{
                      ""$ne"": null
                  }},
                  ""$expr"": {{
@@ -192,7 +192,6 @@ namespace WCNexus.UnitTest
             Assert.Empty(projectsToDeleteInDB);
 
         }
-        
 
     }
 
@@ -209,7 +208,8 @@ namespace WCNexus.UnitTest
                 Name = "Endian",
                 Description = "Project Endian",
                 URL = null,
-                Logo = null,
+                Avatar = null,
+                Cover = null,
                 Type = "type-project",
                 Techs = new List<string>()
                 {
@@ -226,7 +226,8 @@ namespace WCNexus.UnitTest
                     Name = "C# Language",
                     Description = "One of the language spoken by .Net",
                     URL = "http://asp.net",
-                    Logo = "C-well.jpg",
+                    Avatar = "C-well.jpg",
+                    Cover = "C-well.cover.jpg",
                     Type = "type-technology",
                 },
                 new InputNexus()
@@ -235,7 +236,8 @@ namespace WCNexus.UnitTest
                     Name = "Angular",
                     Description = "The modern web developer's platform",
                     URL = "https://angular.io/",
-                    Logo = "angular.jpg",
+                    Avatar = "angular.jpg",
+                    Cover = "angular.cover.jpg",
                     Type = "type-technology",
                 },
                 new InputNexus()
@@ -244,7 +246,8 @@ namespace WCNexus.UnitTest
                     Name = "My-cro-soft-super-quater-latency",
                     Description = "So, in short, MYSQL",
                     URL = "https://idunnowhat.tm/",
-                    Logo = "idunnowhat.jpg",
+                    Avatar = "idunnowhat.jpg",
+                    Cover = "idunnowhat.cover.jpg",
                     Type = "type-technology",
                 },
             };
@@ -267,7 +270,7 @@ namespace WCNexus.UnitTest
                     Name = "RGM Synchronizer",
                     Description = "RGM Synchronizer",
                     URL = null,
-                    Logo = null,
+                    Avatar = null,
                     Type = "type-project",
                     Techs = new List<string>() {
                         "tech-java"
@@ -280,7 +283,8 @@ namespace WCNexus.UnitTest
                     Name = "FPS Helper",
                     Description = "FPS Helper",
                     URL = null,
-                    Logo = "fps-helper.png",
+                    Avatar = "fps-helper.png",
+                    Cover = null,
                     Type = "type-project",
                     Techs = new List<string>() {
                         "tech-angular",
@@ -297,7 +301,8 @@ namespace WCNexus.UnitTest
                     Name = "Java Language",
                     Description = "Language spoken by Spring eco-system",
                     URL = null,
-                    Logo = "java-island.webp",
+                    Avatar = "java-island.webp",
+                    Cover = null,
                     Type = "type-technology",
                 },
                 new InputNexus()
@@ -306,7 +311,8 @@ namespace WCNexus.UnitTest
                     Name = "Angular",
                     Description = "The modern web developer's platform",
                     URL = "https://angular.io/",
-                    Logo = "angular.jpg",
+                    Avatar = "angular.jpg",
+                    Cover = "angular.coverjpg",
                     Type = "type-technology",
                 },
                 new InputNexus()
@@ -315,7 +321,8 @@ namespace WCNexus.UnitTest
                     Name = "JavaScript Language",
                     Description = "Language spoken by all browsers + node eco-system",
                     URL = null,
-                    Logo = "java-scripter.gif",
+                    Avatar = "java-scripter.gif",
+                    Cover = "java-scripter.cover.png",
                     Type = "type-technology",
                 },
                 new InputNexus()
@@ -324,7 +331,8 @@ namespace WCNexus.UnitTest
                     Name = "My-cro-soft-super-quater-latency",
                     Description = "So, in short, MYSQL",
                     URL = "https://idunnowhat.tm/",
-                    Logo = "idunnowhat.jpg",
+                    Avatar = "idunnowhat.jpg",
+                    Cover = null,
                     Type = "type-technology",
                 },
             };
